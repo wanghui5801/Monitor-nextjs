@@ -1,19 +1,23 @@
 import psutil
 import requests
 import time
-import uuid
 import platform
 import os
 import socket
-import requests
 import hashlib
 import subprocess
+import argparse
 
-SERVER_ID = str(uuid.uuid4())  # 生成唯一ID
+# 全局变量定义
+CACHED_LOCATION = None
+NODE_NAME = socket.gethostname()  # 默认使用主机名
+SERVER_ID = None  # 将在 get_machine_id() 后初始化
 API_URL = "http://13.70.189.213:5000/api/servers/update"
 
-# 全局变量保存位置信息
-CACHED_LOCATION = None
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Server Monitor Client')
+    parser.add_argument('--name', type=str, help='Custom node name')
+    return parser.parse_args()
 
 def get_location_from_ip():
     global CACHED_LOCATION
@@ -154,8 +158,8 @@ def get_server_info():
     
     return {
         'id': SERVER_ID,
-        'name': socket.gethostname(),
-        'type': get_server_type(),  # 修改这里，使用get_server_type()函数
+        'name': NODE_NAME,  # 使用全局的 NODE_NAME
+        'type': get_server_type(),
         'location': get_location_from_ip(),
         'uptime': int(time.time() - psutil.boot_time()),
         'network_in': network_in,
@@ -259,11 +263,19 @@ def get_machine_id():
         # 使用主机名作为后备方案
         return hashlib.md5(socket.gethostname().encode()).hexdigest()
 
-# 使用机器ID替代随机UUID
-SERVER_ID = get_machine_id()
-
 def main():
+    global NODE_NAME, SERVER_ID
+    
+    # 解析命令行参数
+    args = parse_arguments()
+    if args.name:
+        NODE_NAME = args.name
+    
+    # 初始化 SERVER_ID
+    SERVER_ID = get_machine_id()
+    
     print(f"Starting monitoring for server: {SERVER_ID}")
+    print(f"Node name: {NODE_NAME}")
     print(f"Sending data to: {API_URL}")
     
     while True:
@@ -272,19 +284,17 @@ def main():
             response = requests.post(API_URL, json=system_info)
             
             if response.status_code == 200:
-                print(f"数据上传成功: {response.status_code}")
+                print(f"数据上传成功")
             else:
                 print(f"数据上传失败: {response.status_code}")
                 print(f"错误信息: {response.text}")
                 
             print(f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            time.sleep(2)  # 每2秒更新一次
             
-        except requests.RequestException as e:
-            print(f"网络错误: {e}")
         except Exception as e:
-            print(f"其他错误: {e}")
-        
-        time.sleep(2)
+            print(f"Error: {e}")
+            time.sleep(5)  # 发生错误时等待5秒后重试
 
 if __name__ == "__main__":
     try:
