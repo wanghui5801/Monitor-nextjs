@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 import jwt
+import sqlite3
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -56,7 +57,7 @@ def update_server_status(server_id):
     data = request.json
     new_status = data.get('status')
     
-    if new_status not in ['running', 'stopped', 'maintenance']:
+    if new_status not in ['running', 'stopped', 'maintenance', 'waiting']:
         return jsonify({'error': 'Invalid status'}), 400
         
     servers[server_id]['status'] = new_status

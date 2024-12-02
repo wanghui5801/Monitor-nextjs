@@ -4,126 +4,88 @@
 
 /* 优化背景渐变 */
 body {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  @apply bg-gray-50 dark:bg-gray-900;
+  min-height: 100vh;
+  position: relative;
 }
 
 body.dark {
-  background: linear-gradient(135deg, #1a1f35 0%, #2d3748 100%);
+  @apply bg-gray-900;
 }
 
 @layer components {
   .status-badge {
-    @apply inline-flex px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-300 
-    hover:scale-110 ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm;
+    @apply px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center space-x-1.5
+    shadow-sm transition-all duration-200 hover:shadow backdrop-blur-sm;
   }
 
   .status-badge-running {
-    @apply bg-emerald-100/90 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-100 
-    hover:bg-emerald-200/90 dark:hover:bg-emerald-800/70 ring-emerald-200 dark:ring-emerald-800;
+    @apply bg-emerald-50/90 dark:bg-emerald-900/30 
+    text-emerald-700 dark:text-emerald-300
+    ring-1 ring-emerald-200/50 dark:ring-emerald-800/50
+    hover:bg-emerald-50 dark:hover:bg-emerald-900/40;
   }
 
   .status-badge-stopped {
-    @apply bg-red-100/90 dark:bg-red-900/50 text-red-800 dark:text-red-100 
-    hover:bg-red-200/90 dark:hover:bg-red-800/70 ring-red-200 dark:ring-red-800;
+    @apply bg-red-50 dark:bg-red-900/30 
+    text-red-700 dark:text-red-300
+    ring-1 ring-red-200/50 dark:ring-red-800/50;
   }
 
   .status-badge-maintenance {
-    @apply bg-yellow-100/90 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-100 
-    hover:bg-yellow-200/90 dark:hover:bg-yellow-800/70 ring-yellow-200 dark:ring-yellow-800;
+    @apply bg-amber-50 dark:bg-amber-900/30 
+    text-amber-700 dark:text-amber-300
+    ring-1 ring-amber-200/50 dark:ring-amber-800/50;
   }
 
   .progress-bar-container {
-    @apply w-16 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden relative
-    ring-1 ring-gray-200/50 dark:ring-gray-700/50;
+    @apply bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden;
   }
 
   .progress-bar {
-    @apply h-full rounded-full transition-all duration-500 ease-out
-    bg-gradient-to-r relative overflow-hidden shadow-sm;
-  }
-
-  .progress-bar::after {
-    @apply absolute inset-0;
-    content: '';
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.15) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmerGentle 3s ease-in-out infinite;
+    @apply h-full rounded-full transition-all duration-300 ease-out;
   }
 
   .progress-bar-wrapper {
-    @apply flex items-center space-x-2.5 transition-all duration-200 
+    @apply flex items-center space-x-2 transition-colors duration-200 
     cursor-pointer hover:opacity-95;
   }
 
   .metric-text {
-    @apply text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap font-medium opacity-0
-    group-hover:opacity-100 transition-all duration-300;
+    @apply text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap font-medium
+    opacity-0 group-hover:opacity-100 transition-opacity duration-200;
   }
 
   .table-cell {
-    @apply px-4 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 
-    transition-all duration-200;
+    @apply px-3 py-3 sm:px-4 sm:py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 
+    transition-colors duration-200;
   }
 
   .stat-card {
-    @apply relative overflow-hidden bg-white/90 dark:bg-gray-800/90 rounded-xl p-6 
-    transition-all duration-300 
-    ring-1 ring-gray-200 dark:ring-gray-700
-    hover:shadow-lg hover:shadow-blue-500/5 dark:hover:shadow-blue-400/5
-    hover:-translate-y-0.5 backdrop-blur-sm;
-  }
-
-  .stat-card::before {
-    @apply absolute inset-0 opacity-0 transition-opacity duration-500;
-    background: linear-gradient(
-      45deg,
-      transparent 25%,
-      rgba(255, 255, 255, 0.05) 50%,
-      transparent 75%
-    );
-    background-size: 200% 200%;
-    content: '';
-  }
-
-  .stat-card:hover::before {
-    @apply opacity-100;
-    animation: gentleGradient 3s ease infinite;
+    @apply bg-white/80 dark:bg-gray-800/80 rounded-lg p-4 sm:p-6 
+    ring-1 ring-gray-200/50 dark:ring-gray-700/50
+    hover:bg-white/90 dark:hover:bg-gray-800/90 
+    transition-colors duration-200;
   }
 
   .server-table {
-    @apply bg-white/95 dark:bg-gray-800/95 rounded-xl
+    @apply bg-white dark:bg-gray-800
     ring-1 ring-gray-200 dark:ring-gray-700
-    overflow-hidden shadow-sm hover:shadow-md 
-    transition-all duration-300;
+    overflow-hidden;
   }
 
   .table-row {
     @apply border-b border-gray-100 dark:border-gray-700/50
     hover:bg-gray-50/50 dark:hover:bg-gray-800/30 
-    transition-all duration-200;
+    transition-colors duration-200;
   }
 
   .metric-card {
-    @apply relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800
-    bg-white dark:bg-gray-900 p-4 sm:p-6 transition-all duration-300
-    hover:shadow-lg hover:-translate-y-1;
-  }
-
-  .metric-card::before {
-    @apply absolute inset-0 -translate-x-full;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.08),
-      transparent
-    );
-    animation: shimmer 2s infinite;
-    content: '';
+    @apply bg-white/80 dark:bg-gray-800/80 overflow-hidden 
+    shadow-lg rounded-xl p-6 border border-gray-200/50 
+    dark:border-gray-700/50 backdrop-blur-sm
+    hover:shadow-xl hover:scale-[1.02] 
+    transition-all duration-300;
   }
 
   .metric-value {
@@ -134,20 +96,48 @@ body.dark {
 
   .metric-label {
     @apply mt-1 text-sm font-medium text-gray-600 dark:text-gray-400
-    transition-all duration-200;
+    transition-colors duration-200;
   }
 
-  .status-badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-    transition-all duration-300 hover:scale-105 cursor-default
-    ring-2 ring-opacity-50;
+  .network-stats {
+    @apply flex flex-col space-y-0.5 text-xs font-medium;
   }
 
-  .shimmer {
-    @apply relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full
-    before:animate-[shimmer_2s_infinite]
-    before:bg-gradient-to-r
-    before:from-transparent before:via-white/10 before:to-transparent;
+  .network-stat-item {
+    @apply flex items-center space-x-1.5 text-gray-600 dark:text-gray-400
+    transition-colors duration-200;
+  }
+
+  .network-icon {
+    @apply w-3 h-3;
+  }
+
+  .network-download {
+    @apply text-emerald-500 dark:text-emerald-400;
+  }
+
+  .network-upload {
+    @apply text-blue-500 dark:text-blue-400;
+  }
+
+  /* 移动端适配 */
+  .mobile-table-container {
+    @apply -mx-2 sm:mx-0 overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-table {
+    @apply min-w-[800px] sm:w-full;
+  }
+
+  .mobile-table-wrapper {
+    @apply px-4 sm:px-0;
+  }
+
+  .table-row-hover {
+    @apply hover:bg-gray-50/80 dark:hover:bg-gray-800/50 
+    transition-all duration-200 cursor-pointer
+    hover:shadow-md hover:scale-[1.01];
   }
 }
 
@@ -161,13 +151,7 @@ html {
   scroll-behavior: smooth;
 }
 
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* 添加平滑滚动和选择样式 */
+/* 选择文本样式 */
 ::selection {
   @apply bg-blue-500/20;
 }
@@ -178,32 +162,22 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-gray-100/50 dark:bg-gray-800/50;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full
-  hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors;
+  @apply bg-gray-300/80 dark:bg-gray-600/80 rounded-full
+  hover:bg-gray-400/80 dark:hover:bg-gray-500/80 transition-colors;
 }
 
-@keyframes gentleGradient {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  100% {
-    background-position: 0% 0%;
-  }
+/* 移除或修改任何可能影响全局布局的样式 */
+body {
+  @apply bg-gray-50 dark:bg-gray-900;
 }
 
-@keyframes shimmerGentle {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
+.dashboard-container {
+  @apply min-h-screen;
 }
+
+/* 保留其他必要的样式 */
 

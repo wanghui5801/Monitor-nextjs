@@ -10,6 +10,7 @@ import {
   XCircleIcon 
 } from '@heroicons/react/24/outline';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import AdminStats from '../../components/admin/AdminStats';
 
 export default function AdminDashboard() {
   const [clients, setClients] = useState<Server[]>([]);
@@ -118,88 +119,36 @@ export default function AdminDashboard() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Server Management</h1>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Monitor and manage your server clients
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 
-                    text-white rounded-md shadow-sm transition-colors duration-200"
-                >
-                  <PlusIcon className="w-5 h-5 mr-2" />
-                  Add Client
-                </button>
-              </div>
+        <div className="py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Client Management
+              </h1>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 space-x-2
+                  bg-blue-600 hover:bg-blue-700 
+                  dark:bg-blue-500 dark:hover:bg-blue-600
+                  text-white rounded-lg shadow-sm
+                  transition-all duration-200 hover:scale-105"
+              >
+                <PlusIcon className="h-5 w-5" />
+                <span>Add Client</span>
+              </button>
+            </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
-                <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-lg p-5 
-                  border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                      <ServerIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Total Clients</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{clients.length}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-lg p-5 
-                  border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
-                      <CheckCircleIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Active Clients</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {clients.filter(client => client.status === 'running').length}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-lg p-5 
-                  border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/50">
-                      <XCircleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Inactive Clients</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {clients.filter(client => client.status !== 'running').length}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 
-                  rounded-lg border border-red-200 dark:border-red-800">
-                  {error}
-                </div>
-              )}
-
-              <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden 
-                border border-gray-200 dark:border-gray-700">
-                <div className="p-6">
-                  <ClientTable 
-                    clients={clients} 
-                    loading={loading} 
-                    onDelete={handleDelete}
-                    onUpdateOrder={handleUpdateOrder}
-                  />
-                </div>
+            <div className="space-y-6">
+              <AdminStats clients={clients} />
+              <div className="bg-white/90 dark:bg-gray-800/90 
+                shadow-lg rounded-xl border border-gray-200/50 
+                dark:border-gray-700/50 backdrop-blur-sm">
+                <ClientTable 
+                  clients={clients} 
+                  loading={loading} 
+                  onDelete={handleDelete}
+                  onUpdateOrder={handleUpdateOrder}
+                />
               </div>
             </div>
           </div>

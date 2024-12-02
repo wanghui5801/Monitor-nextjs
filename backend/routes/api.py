@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from models.server import Server
 from config import Config
 from datetime import datetime
+import sqlite3
 
 api = Blueprint('api', __name__)
 server_model = Server(Config.DATABASE_PATH)
@@ -56,34 +57,34 @@ def update_server():
         if not server_model.is_client_allowed(data['name']):
             return jsonify({'error': 'Client not allowed'}), 403
             
-        # 获取服务器当前状态
+        # 获取服务器当前状态和排序索引
         conn = server_model.get_db()
         c = conn.cursor()
         try:
-            c.execute('SELECT status, order_index FROM servers WHERE id = ?', (data['id'],))
+            c.execute('SELECT status, order_index, first_seen FROM servers WHERE id = ?', (data['id'],))
             result = c.fetchone()
             
             if result:
-                current_status, order_index = result
-                # 如果当前状态是stopped且不是maintenance状态，则改为running
-                if current_status == 'stopped' and current_status != 'maintenance':
-                    current_status = 'running'
+                current_status, order_index, first_seen = result
+                # 只在特定条件下更新状态
+                if current_status != 'maintenance':
+                    data['status'] = 'running'
+                else:
+                    data['status'] = current_status
+                data['order_index'] = order_index
+                data['first_seen'] = first_seen
             else:
-                # 新服务器首次连接时设为running
-                current_status = 'running'
-                c.execute('SELECT COALESCE(MIN(order_index) - 1, 0) FROM servers')
-                order_index = c.fetchone()[0]
+                # 新服务器首次连接
+                data['status'] = 'running'
+                c.execute('SELECT COALESCE(MAX(order_index), 0) FROM servers')
+                data['order_index'] = c.fetchone()[0] - 1
+                data['first_seen'] = datetime.now().isoformat()
             
-            # 更新服务器数据
-            data['status'] = current_status
-            data['order_index'] = order_index
             server_model.update_server(data)
-            
             return jsonify({'status': 'success'}), 200
             
         finally:
             conn.close()
-            
     except Exception as e:
         print(f"Error updating server: {e}")
         return jsonify({'error': str(e)}), 500
@@ -91,39 +92,42 @@ def update_server():
 @api.route('/servers', methods=['GET'])
 def get_servers():
     try:
-        # 先检查非活动服务器
-        server_model.check_inactive_servers()
-        
-        # 然后获取服务器列表
-        conn = server_model.get_db()
+        conn = sqlite3.connect(Config.DATABASE_PATH)
         c = conn.cursor()
-        try:
-            c.execute('''
-                WITH RankedServers AS (
-                    SELECT *,
-                           ROW_NUMBER() OVER (PARTITION BY id ORDER BY last_update DESC) as rn
-                    FROM servers
-                )
-                SELECT id, name, type, location, status, uptime, 
-                       network_in, network_out, cpu, memory, disk, 
-                       os_type, order_index, first_seen, last_update
-                FROM RankedServers
-                WHERE rn = 1
-                ORDER BY order_index DESC NULLS LAST, first_seen ASC
-            ''')
-            
-            columns = [description[0] for description in c.description]
-            servers = []
-            for row in c.fetchall():
-                server_dict = dict(zip(columns, row[:-1]))  # 排除 rn 列
-                servers.append(server_dict)
-            
-            return jsonify(servers)
-        finally:
-            conn.close()
+        c.execute('''
+            SELECT id, name, type, location, status, uptime, network_in, network_out,
+                   cpu, memory, disk, os_type, order_index, cpu_info, total_memory, total_disk,
+                   last_update
+            FROM servers
+            ORDER BY order_index ASC
+        ''')
+        servers = []
+        for row in c.fetchall():
+            servers.append({
+                'id': row[0],
+                'name': row[1],
+                'type': row[2],
+                'location': row[3],
+                'status': row[4],
+                'uptime': row[5],
+                'network_in': row[6],
+                'network_out': row[7],
+                'cpu': row[8],
+                'memory': row[9],
+                'disk': row[10],
+                'os_type': row[11],
+                'order_index': row[12],
+                'cpu_info': row[13],
+                'total_memory': row[14],
+                'total_disk': row[15],
+                'last_update': row[16]
+            })
+        return jsonify(servers)
     except Exception as e:
-        print(f"Error getting servers: {e}")
-        return jsonify([])
+        print(f"Error fetching servers: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @api.route('/servers/<server_id>', methods=['GET'])
 def get_server_status(server_id):
@@ -201,8 +205,19 @@ def add_client():
         if not data or 'name' not in data:
             return jsonify({'error': 'Client name is required'}), 400
             
-        server_model.add_allowed_client(data['name'])
-        return jsonify({'status': 'success'}), 200
+        # 检查客户端名称是否已存在
+        conn = server_model.get_db()
+        c = conn.cursor()
+        try:
+            c.execute('SELECT name FROM allowed_clients WHERE name = ?', (data['name'],))
+            if c.fetchone():
+                return jsonify({'error': 'Client already exists'}), 400
+                
+            # 添加新客户端
+            server_model.add_allowed_client(data['name'])
+            return jsonify({'status': 'success'}), 200
+        finally:
+            conn.close()
             
     except Exception as e:
         print(f"Error adding client: {e}")

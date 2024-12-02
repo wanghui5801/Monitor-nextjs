@@ -44,61 +44,167 @@ def get_location_from_ip():
         return CACHED_LOCATION
 
 def get_network_speed():
-    # 获取初始值
-    net1 = psutil.net_io_counters()
-    time.sleep(1)  # 等待1秒
-    # 获取终值
-    net2 = psutil.net_io_counters()
-    # 计算每秒速率
-    bytes_sent = net2.bytes_sent - net1.bytes_sent
-    bytes_recv = net2.bytes_recv - net1.bytes_recv
-    return bytes_recv, bytes_sent
+    try:
+        # 获取初始值
+        net1 = psutil.net_io_counters()
+        time.sleep(1)  # 等待1秒
+        # 获取终值
+        net2 = psutil.net_io_counters()
+        # 计算每秒速率
+        bytes_sent = net2.bytes_sent - net1.bytes_sent
+        bytes_recv = net2.bytes_recv - net1.bytes_recv
+        return bytes_recv, bytes_sent
+    except Exception as e:
+        print(f"Error getting network speed: {e}")
+        return 0, 0
 
 def get_detailed_os_info():
-    if platform.system() == 'Linux':
+    if platform.system() == 'Windows':
         try:
+            import wmi
+            w = wmi.WMI()
+            os_info = w.Win32_OperatingSystem()[0]
+            return f"Windows {os_info.Version}"
+        except:
+            return "Windows"
+    else:
+        try:
+            # 尝试读取 os-release 文件获取详细信息
             with open('/etc/os-release') as f:
                 lines = f.readlines()
-                for line in lines:
-                    if line.startswith('ID='):
-                        return line.split('=')[1].strip().strip('"')
+                os_info = dict(line.strip().split('=', 1) for line in lines if '=' in line)
+                
+                # 获取发行版名称
+                if 'ID' in os_info:
+                    distro_id = os_info['ID'].strip('"')
+                    if distro_id == 'ubuntu':
+                        return 'Ubuntu'
+                    elif distro_id == 'debian':
+                        return 'Debian'
+                    elif distro_id == 'centos':
+                        return 'CentOS'
+                    elif distro_id == 'fedora':
+                        return 'Fedora'
+                    elif distro_id == 'rhel':
+                        return 'RHEL'
+            
+            # 如果上面的方法失败，尝试使用 platform 模块
+            dist = platform.dist()
+            if dist[0]:
+                return dist[0].capitalize()
+                
         except:
+            # 如果都失败了，使用 platform.system()
             pass
+            
     return platform.system()
+
+def get_cpu_info():
+    try:
+        if platform.system() == "Windows":
+            import wmi
+            w = wmi.WMI()
+            cpu = w.Win32_Processor()[0]
+            return f"{cpu.Name} ({psutil.cpu_count()} threads)"
+        else:
+            with open('/proc/cpuinfo') as f:
+                for line in f:
+                    if line.startswith('model name'):
+                        model = line.split(':')[1].strip()
+                        return f"{model} ({psutil.cpu_count()} threads)"
+            # 如果无法读取 model name，返回基本信息
+            return f"CPU ({psutil.cpu_count()} threads)"
+    except Exception as e:
+        print(f"Error getting CPU info: {e}")
+        return f"CPU ({psutil.cpu_count()} threads)"
+
+def get_all_disks_usage():
+    try:
+        total_size = 0
+        total_used = 0
+        # 获取所有磁盘分区
+        partitions = psutil.disk_partitions()
+        for partition in partitions:
+            try:
+                # 跟踪所有可以访问的分区
+                usage = psutil.disk_usage(partition.mountpoint)
+                total_size += usage.total
+                total_used += usage.used
+            except (PermissionError, OSError):
+                # 跳过无法访问的分区
+                continue
+                
+        # 如果有有效的磁盘数据
+        if total_size > 0:
+            # 计算总体使用百分比
+            usage_percent = (total_used / total_size) * 100
+            # 转换为GB
+            total_size_gb = total_size / (1024 * 1024 * 1024)
+            return usage_percent, total_size_gb
+            
+        return 0, 0
+    except Exception as e:
+        print(f"Error getting disk usage: {e}")
+        return 0, 0
 
 def get_server_info():
     network_in, network_out = get_network_speed()
+    memory = psutil.virtual_memory()
+    disk_percent, total_disk = get_all_disks_usage()
+    
     return {
         'id': SERVER_ID,
         'name': socket.gethostname(),
-        'type': 'VPS',
+        'type': get_server_type(),  # 修改这里，使用get_server_type()函数
         'location': get_location_from_ip(),
         'uptime': int(time.time() - psutil.boot_time()),
         'network_in': network_in,
         'network_out': network_out,
         'cpu': psutil.cpu_percent(),
         'memory': psutil.virtual_memory().percent,
-        'disk': psutil.disk_usage('/').percent,
-        'os_type': get_detailed_os_info()
+        'disk': disk_percent,
+        'os_type': get_detailed_os_info(),
+        'cpu_info': get_cpu_info(),
+        'total_memory': psutil.virtual_memory().total / (1024 * 1024 * 1024),
+        'total_disk': total_disk
     }
 
 def get_server_type():
-    """Through system characteristics to determine the server type"""
+    """Determine if server is VPS or Dedicated through multiple checks"""
     if platform.system() == "Windows":
         try:
             import wmi
             w = wmi.WMI()
+            # 检查系统型号
             for item in w.Win32_ComputerSystem():
-                if item.Model.lower().find('virtual') != -1:
+                if any(virt in item.Model.lower() for virt in [
+                    'virtual', 'vmware', 'kvm', 'xen', 'hyperv'
+                ]):
+                    return "VPS"
+                    
+            # 检查制造商
+            for item in w.Win32_ComputerSystem():
+                if any(virt in item.Manufacturer.lower() for virt in [
+                    'vmware', 'microsoft corporation', 'xen', 'qemu', 'innotek'
+                ]):
                     return "VPS"
         except:
             pass
     else:
-        # Linux detection - Check product name
+        # Linux detection methods
         try:
+            # Method 1: Check systemd-detect-virt
+            try:
+                result = subprocess.run(['systemd-detect-virt'], 
+                                     capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip() != 'none':
+                    return "VPS"
+            except:
+                pass
+                
+            # Method 2: Check product name
             with open('/sys/class/dmi/id/product_name') as f:
                 product_name = f.read().strip().lower()
-                # Common virtualization products
                 virt_products = [
                     'kvm', 'vmware', 'virtualbox', 'xen', 'openstack', 'qemu',
                     'amazon ec2', 'google compute engine', 
@@ -107,45 +213,51 @@ def get_server_type():
                     'standard personal computer', 'pc-q35', 'q35', 'pc-i440fx',
                     'hetzner vserver', 'vultr', 'linode', 'droplet', 'scaleway',
                     'ovhcloud', 'proxmox', 'parallels', 'hyper-v', 'oracle vm',
-                    'innotek', 'cloud server', 'virtual server', 'vps',
-                    '(q35 + ich9', 'ich9', 'standard-pc'
+                    'innotek', 'cloud server', 'virtual server', 'vps'
                 ]
-                
                 if any(virt in product_name for virt in virt_products):
                     return "VPS"
-                
-                return "Dedicated Server"
-        except:
+                    
+            # Method 3: Check CPU info for virtualization flags
+            with open('/proc/cpuinfo') as f:
+                cpu_info = f.read().lower()
+                if any(flag in cpu_info for flag in ['vmx', 'svm', 'hypervisor']):
+                    return "VPS"
+                    
+            # Method 4: Check dmesg for virtualization hints
             try:
-                import subprocess
-                result = subprocess.run(['systemd-detect-virt'], 
-                                     capture_output=True, text=True)
-                if result.returncode == 0 and result.stdout.strip() != 'none':
+                dmesg = subprocess.run(['dmesg'], capture_output=True, text=True).stdout.lower()
+                if any(hint in dmesg for hint in ['kvm', 'vmware', 'xen', 'hyperv']):
                     return "VPS"
             except:
                 pass
-    
+                
+        except Exception as e:
+            print(f"Error detecting server type: {e}")
+
+    # 如果所有检测都未发现虚拟化特征，则认为是物理服务器
     return "Dedicated Server"
 
 def get_machine_id():
     """获取机器的唯一标识符"""
-    # 获取主机名
-    hostname = socket.gethostname()
-    
     try:
-        # 获取第一个网卡的MAC地址
-        if platform.system() == "Linux":
-            mac = subprocess.check_output("cat /sys/class/net/$(ls /sys/class/net | head -n 1)/address", shell=True).decode().strip()
-        elif platform.system() == "Windows":
-            mac = subprocess.check_output("getmac /NH").decode().split()[0].strip()
+        if platform.system() == "Windows":
+            # Windows下使用WMI获取系统UUID
+            import wmi
+            w = wmi.WMI()
+            system_info = w.Win32_ComputerSystemProduct()[0]
+            return hashlib.md5(system_info.UUID.encode()).hexdigest()
         else:
-            mac = "unknown"
-    except:
-        mac = "unknown"
-    
-    # 组合主机名和MAC地址，并生成哈希作为机器ID
-    machine_id = f"{hostname}-{mac}"
-    return hashlib.md5(machine_id.encode()).hexdigest()
+            # Linux系统保持原有逻辑
+            hostname = socket.gethostname()
+            mac = subprocess.check_output("cat /sys/class/net/$(ls /sys/class/net | head -n 1)/address", 
+                                       shell=True).decode().strip()
+            machine_id = f"{hostname}-{mac}"
+            return hashlib.md5(machine_id.encode()).hexdigest()
+    except Exception as e:
+        print(f"Error getting machine ID: {e}")
+        # 使用主机名作为后备方案
+        return hashlib.md5(socket.gethostname().encode()).hexdigest()
 
 # 使用机器ID替代随机UUID
 SERVER_ID = get_machine_id()

@@ -2,6 +2,7 @@ from datetime import datetime
 import sqlite3
 from typing import Dict, List
 import bcrypt
+import hashlib
 
 class Server:
     def __init__(self, db_path: str):
@@ -72,43 +73,49 @@ class Server:
         return servers
 
     def update_server(self, server_data: Dict):
-        conn = sqlite3.connect(self.db_path)
+        conn = self.get_db()
         c = conn.cursor()
         try:
-            # 检查服务器是否存在并获取当前状态和order_index
-            c.execute('SELECT status, order_index FROM servers WHERE id = ?', (server_data['id'],))
-            result = c.fetchone()
+            # 检查是否是允许的客户端
+            c.execute('SELECT name FROM allowed_clients WHERE name = ?', (server_data['name'],))
+            if not c.fetchone():
+                return False
             
-            if not result:
-                # 新服务器 - 获取最小的order_index
-                c.execute('SELECT COALESCE(MIN(order_index) - 1, 0) FROM servers')
-                order_index = c.fetchone()[0]
-                current_status = 'running'
-            else:
-                current_status, order_index = result
-            
-            # 使用 REPLACE INTO 来更新或插入记录
+            # 更新服务器记录
             c.execute('''
-                REPLACE INTO servers 
-                (id, name, type, location, status, uptime, network_in, network_out,
-                 cpu, memory, disk, os_type, order_index, last_update)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                UPDATE servers 
+                SET type = ?,
+                    location = ?,
+                    status = 'running',
+                    uptime = ?,
+                    network_in = ?,
+                    network_out = ?,
+                    cpu = ?,
+                    memory = ?,
+                    disk = ?,
+                    os_type = ?,
+                    cpu_info = ?,
+                    total_memory = ?,
+                    total_disk = ?,
+                    last_update = CURRENT_TIMESTAMP
+                WHERE name = ?
             ''', (
-                server_data['id'],
-                server_data.get('name', ''),
-                server_data.get('type', ''),
-                server_data.get('location', ''),
-                current_status,
+                server_data.get('type', 'Unknown'),
+                server_data.get('location', 'UN'),
                 server_data.get('uptime', 0),
                 server_data.get('network_in', 0),
                 server_data.get('network_out', 0),
                 server_data.get('cpu', 0),
                 server_data.get('memory', 0),
                 server_data.get('disk', 0),
-                server_data.get('os_type', ''),
-                order_index
+                server_data.get('os_type', 'Unknown'),
+                server_data.get('cpu_info', 'N/A'),
+                server_data.get('total_memory', 0),
+                server_data.get('total_disk', 0),
+                server_data['name']
             ))
             conn.commit()
+            return True
         finally:
             conn.close()
 
@@ -233,15 +240,54 @@ class Server:
             conn.close()
 
     def add_allowed_client(self, client_name: str):
-        """添加允许的客户端"""
+        """添加或更新允许的客户端并创建初始服务器记录"""
+        if not client_name or not client_name.strip():
+            raise Exception("Client name cannot be empty")
+        
+        client_name = client_name.strip()
         conn = self.get_db()
         c = conn.cursor()
         try:
+            # 删除已存在的客户端记录（如果有）
+            c.execute('DELETE FROM allowed_clients WHERE name = ?', (client_name,))
+            c.execute('DELETE FROM servers WHERE name = ?', (client_name,))
+            
+            # 添加到允许的客户端列表
             c.execute('''
                 INSERT INTO allowed_clients (name, created_at)
                 VALUES (?, CURRENT_TIMESTAMP)
             ''', (client_name,))
+            
+            # 创建一个初始的服务器记录，使用更友好的默认值
+            server_id = hashlib.md5(client_name.encode('utf-8')).hexdigest()
+            c.execute('''
+                INSERT INTO servers 
+                (id, name, type, location, status, uptime, network_in, network_out,
+                 cpu, memory, disk, os_type, order_index, last_update, cpu_info, total_memory, total_disk)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?)
+            ''', (
+                server_id,
+                client_name,
+                'VPS',                # 服务器类型
+                'Pending',            # 位置状态
+                'maintenance',        # 更友好的状态显示
+                1,                    # uptime (1天)
+                1024,                 # network_in (1KB/s)
+                1024,                 # network_out (1KB/s)
+                0,                    # cpu (5%)
+                0,                    # memory (20%)
+                0,                    # disk (30%)
+                'Linux',              # 操作系统
+                0,                    # order_index
+                'N/A',               # cpu_info
+                0,                    # total_memory
+                0,                    # total_disk
+            ))
+            
             conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise Exception(f"Failed to add client: {str(e)}")
         finally:
             conn.close()
 

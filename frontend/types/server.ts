@@ -13,4 +13,8 @@ export interface Server {
     os_type: string;
     order_index: number;
     last_update: string;
+    cpu_info: string;
+    total_memory: number;
+    total_disk: number;
+    is_expanded?: boolean;
 }
