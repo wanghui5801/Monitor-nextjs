@@ -28,16 +28,23 @@ export default function Login() {
     
     try {
       if (isInitializing) {
-        const res = await fetch('http://13.70.189.213:5000/api/auth/initialize', {
+        const initRes = await fetch('http://13.70.189.213:5000/api/auth/initialize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password })
         });
-        if (!res.ok) throw new Error('Failed to initialize');
+        
+        if (!initRes.ok) {
+          throw new Error('Failed to initialize');
+        }
+        
+        // After successful initialization, proceed with login
+        await login(password);
+        router.push('/admin');
+      } else {
+        await login(password);
+        router.push('/admin');
       }
-      
-      await login(password);
-      router.push('/admin');
     } catch (err) {
       setError('Invalid password');
     }

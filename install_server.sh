@@ -115,11 +115,11 @@ install_packages() {
     case $OS in
         "debian"|"ubuntu")
             apt-get update
-            apt-get install -y python3 python3-pip python3-venv git curl nginx
+            apt-get install -y python3 python3-pip python3-venv git curl
             ;;
         "centos"|"rhel"|"fedora")
             yum -y update
-            yum -y install python3 python3-pip git curl nginx
+            yum -y install python3 python3-pip git curl
             ;;
     esac
 }
@@ -167,28 +167,6 @@ main() {
         exit 1
     fi
     
-    # Configure Nginx
-    cat > /etc/nginx/conf.d/monitor.conf << 'EOL'
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        root /opt/server-monitor/frontend/.next;
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-EOL
-
     # Configure backend
     cd ../backend || exit
     python3 -m venv venv
@@ -205,8 +183,9 @@ DEBUG=False
 DATABASE_PATH=/opt/server-monitor/backend/monitor.db
 EOL
 
-    # Create systemd service
-    cat > /etc/systemd/system/server-monitor.service << EOL
+    # Create systemd services
+    # Backend service
+    cat > /etc/systemd/system/server-monitor-backend.service << EOL
 [Unit]
 Description=Server Monitor Backend Service
 After=network.target
@@ -224,22 +203,42 @@ RestartSec=10
 WantedBy=multi-user.target
 EOL
 
+    # Frontend service
+    cat > /etc/systemd/system/server-monitor-frontend.service << EOL
+[Unit]
+Description=Server Monitor Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/server-monitor/frontend
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="PORT=3000"
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
     # Set correct permissions
-    chmod 644 /etc/systemd/system/server-monitor.service
-    chmod 644 /etc/nginx/conf.d/monitor.conf
+    chmod 644 /etc/systemd/system/server-monitor-backend.service
+    chmod 644 /etc/systemd/system/server-monitor-frontend.service
 
     # Start services
     systemctl daemon-reload
-    systemctl enable nginx server-monitor
-    systemctl restart nginx server-monitor
+    systemctl enable server-monitor-backend server-monitor-frontend
+    systemctl start server-monitor-backend server-monitor-frontend
 
     # Final check
-    if systemctl is-active --quiet server-monitor && systemctl is-active --quiet nginx; then
+    if systemctl is-active --quiet server-monitor-backend && systemctl is-active --quiet server-monitor-frontend; then
         print_message "Installation completed successfully!" "$GREEN"
-        print_message "You can now access the dashboard at http://YOUR_SERVER_IP" "$GREEN"
+        print_message "You can now access the dashboard at http://YOUR_SERVER_IP:3000" "$GREEN"
     else
         print_message "Installation completed but services are not running properly" "$RED"
-        print_message "Please check the logs with: journalctl -u server-monitor" "$YELLOW"
+        print_message "Please check the logs with: journalctl -u server-monitor-backend -u server-monitor-frontend" "$YELLOW"
     fi
 }
 

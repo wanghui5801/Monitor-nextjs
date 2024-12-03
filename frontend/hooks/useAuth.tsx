@@ -15,11 +15,19 @@ const AuthContext = createContext<{
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(true);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('adminToken');
     setToken(storedToken);
     setIsAuthenticated(!!storedToken);
+
+    // Check initialization status
+    fetch('http://13.70.189.213:5000/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        setIsInitialized(data.initialized);
+      });
   }, []);
 
   const login = async (password: string) => {
