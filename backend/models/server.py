@@ -27,6 +27,9 @@ class Server:
                     memory REAL,
                     disk REAL,
                     os_type TEXT,
+                    cpu_info TEXT,
+                    total_memory REAL,
+                    total_disk REAL,
                     order_index INTEGER DEFAULT 0,
                     first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP

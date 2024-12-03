@@ -12,7 +12,12 @@ import argparse
 CACHED_LOCATION = None
 NODE_NAME = socket.gethostname()  # Default to hostname
 SERVER_ID = None  # Will be initialized after get_machine_id()
-API_URL = "http://13.70.189.213:5000/api/servers/update"
+
+# Get API URL from environment or config file
+try:
+    from config import API_URL
+except ImportError:
+    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')

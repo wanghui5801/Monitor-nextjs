@@ -51,11 +51,13 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onDelete, o
   }, []);
 
   const getLinuxCommand = (clientName: string) => {
-    return `wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.sh && chmod +x install.sh && sudo ./install.sh "${clientName}"`;
+    const serverIp = window.location.hostname;
+    return `wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.sh && chmod +x install.sh && sudo SERVER_IP=${serverIp} ./install.sh "${clientName}"`;
   };
 
   const getWindowsCommand = (clientName: string) => {
-    return `powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; Start-Process -FilePath 'install_client.bat' -ArgumentList '${clientName}' -Verb RunAs }"`;
+    const serverIp = window.location.hostname;
+    return `powershell -Command "& { $env:SERVER_IP = '${serverIp}'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; Start-Process -FilePath 'install_client.bat' -ArgumentList '${clientName}' -Verb RunAs }"`;
   };
 
   return (

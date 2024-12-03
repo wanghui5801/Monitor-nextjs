@@ -18,12 +18,14 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-:: Get server IP
-set /p SERVER_IP=Enter server IP address: 
+:: Get server IP from environment variable or prompt
 if "%SERVER_IP%"=="" (
-    call :print_message "Server IP address is required" "RED"
-    pause
-    exit /b 1
+    set /p SERVER_IP=Enter server IP address: 
+    if "!SERVER_IP!"=="" (
+        call :print_message "Server IP address is required" "RED"
+        pause
+        exit /b 1
+    )
 )
 
 :: Get node name

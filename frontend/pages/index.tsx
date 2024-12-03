@@ -3,6 +3,7 @@ import ServerList from '../components/ServerList'
 import { useEffect, useState } from 'react'
 import { Server } from '../types/server'
 import Link from 'next/link'
+import { API_URL } from '../config/config';
 
 export default function Home() {
   const [servers, setServers] = useState<Server[]>([])
@@ -11,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     const fetchServers = async () => {
       try {
-        const response = await fetch('http://13.70.189.213:5000/api/servers')
+        const response = await fetch(`${API_URL}/api/servers`)
         const data = await response.json()
         setServers(data)
       } catch (error) {

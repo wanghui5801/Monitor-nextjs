@@ -14,6 +14,7 @@ import AdminStats from '../../components/admin/AdminStats';
 import ResetPasswordModal from '../../components/admin/ResetPasswordModal';
 import { useAuth } from '../../hooks/useAuth';
 import { Toaster } from 'react-hot-toast';
+import { API_URL } from '../../config/config';
 
 export default function AdminDashboard() {
   const { logout } = useAuth();
@@ -25,7 +26,7 @@ export default function AdminDashboard() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://13.70.189.213:5000/api/servers');
+      const response = await fetch(`${API_URL}/api/servers`);
       if (!response.ok) throw new Error('Failed to fetch clients');
       const data = await response.json();
       setClients(data);
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
       setError(null);
       setLoading(true);
       
-      const response = await fetch(`http://13.70.189.213:5000/api/servers/${clientId}`, {
+      const response = await fetch(`${API_URL}/api/servers/${clientId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export default function AdminDashboard() {
       setError(null);
       setLoading(true);
       
-      const response = await fetch(`http://13.70.189.213:5000/api/servers/${clientId}/order`, {
+      const response = await fetch(`${API_URL}/api/servers/${clientId}/order`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +101,7 @@ export default function AdminDashboard() {
       setError(null);
       setLoading(true);
       
-      const response = await fetch('http://13.70.189.213:5000/api/clients', {
+      const response = await fetch(`${API_URL}/api/clients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

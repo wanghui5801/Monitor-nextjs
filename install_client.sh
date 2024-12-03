@@ -76,10 +76,14 @@ if [ -z "$NODE_NAME" ]; then
     fi
 fi
 
-read -p "Enter server IP address: " SERVER_IP
+# Get server IP from environment variable or prompt
+SERVER_IP=${SERVER_IP:-""}
 if [ -z "$SERVER_IP" ]; then
-    print_message "Server IP address is required" "$RED"
-    exit 1
+    read -p "Enter server IP address: " SERVER_IP
+    if [ -z "$SERVER_IP" ]; then
+        print_message "Server IP address is required" "$RED"
+        exit 1
+    fi
 fi
 
 # Main installation

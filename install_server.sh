@@ -133,6 +133,17 @@ backup_existing() {
     fi
 }
 
+# 获取服务器IP
+SERVER_IP=$(curl -s ifconfig.me || wget -qO- ifconfig.me)
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+
+if [ -z "$SERVER_IP" ]; then
+    print_message "Failed to get server IP" "$RED"
+    exit 1
+fi
+
 # Main installation process
 main() {
     print_message "Starting Server Monitor installation..." "$GREEN"
@@ -158,6 +169,7 @@ main() {
     
     # Install and build frontend
     cd frontend || exit
+    echo "NEXT_PUBLIC_API_URL=http://${SERVER_IP}:5000" > .env.local
     if ! npm install; then
         print_message "Failed to install frontend dependencies" "$RED"
         exit 1
@@ -235,7 +247,9 @@ EOL
     # Final check
     if systemctl is-active --quiet server-monitor-backend && systemctl is-active --quiet server-monitor-frontend; then
         print_message "Installation completed successfully!" "$GREEN"
-        print_message "You can now access the dashboard at http://YOUR_SERVER_IP:3000" "$GREEN"
+        print_message "You can now access:" "$GREEN"
+        print_message "Dashboard: http://${SERVER_IP}:3000" "$GREEN"
+        print_message "API: http://${SERVER_IP}:5000" "$GREEN"
     else
         print_message "Installation completed but services are not running properly" "$RED"
         print_message "Please check the logs with: journalctl -u server-monitor-backend -u server-monitor-frontend" "$YELLOW"
