@@ -102,15 +102,7 @@ def initialize_auth():
         return jsonify({'error': 'Password is required'}), 400
         
     success = server_model.set_admin_password(password)
-    if success:
-        # Generate token after successful initialization
-        token = jwt.encode(
-            {'exp': datetime.utcnow() + timedelta(days=1)}, 
-            app.config['SECRET_KEY'], 
-            algorithm='HS256'
-        )
-        return jsonify({'token': token, 'success': True})
-    return jsonify({'error': 'Failed to initialize'}), 500
+    return jsonify({'success': success})
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
