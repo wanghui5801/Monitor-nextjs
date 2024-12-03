@@ -8,10 +8,10 @@ import hashlib
 import subprocess
 import argparse
 
-# 全局变量定义
+# Global variable definitions
 CACHED_LOCATION = None
-NODE_NAME = socket.gethostname()  # 默认使用主机名
-SERVER_ID = None  # 将在 get_machine_id() 后初始化
+NODE_NAME = socket.gethostname()  # Default to hostname
+SERVER_ID = None  # Will be initialized after get_machine_id()
 API_URL = "http://13.70.189.213:5000/api/servers/update"
 
 def parse_arguments():
@@ -25,17 +25,17 @@ def get_location_from_ip():
         return CACHED_LOCATION
         
     try:
-        # 使用更可靠的 ip-api.com 服务
+        # Use more reliable ip-api.com service
         response = requests.get('http://ip-api.com/json/', timeout=5)
         data = response.json()
         
         if data.get('status') == 'success':
-            # 获取两位字母的国家代码
+            # Get two-letter country code
             country_code = data.get('countryCode', 'UN')
             CACHED_LOCATION = country_code
             return country_code
             
-        # 如果主要 API 失败，尝试备用 API
+        # If the main API fails, try the backup API
         ip = requests.get('https://api.ipify.org', timeout=5).text
         response = requests.get(f'https://ipapi.co/{ip}/json/', timeout=5).json()
         country_code = response.get('country_code', 'UN')
@@ -44,17 +44,17 @@ def get_location_from_ip():
         
     except Exception as e:
         print(f"Error getting location: {e}")
-        CACHED_LOCATION = 'UN'  # UN 作为默认值，表示未知
+        CACHED_LOCATION = 'UN'  # UN as the default value, indicating unknown
         return CACHED_LOCATION
 
 def get_network_speed():
     try:
-        # 获取初始值
+        # Get initial value
         net1 = psutil.net_io_counters()
-        time.sleep(1)  # 等待1秒
-        # 获取终值
+        time.sleep(1)  # Wait for 1 second
+        # Get final value
         net2 = psutil.net_io_counters()
-        # 计算每秒速率
+        # Calculate the rate per second
         bytes_sent = net2.bytes_sent - net1.bytes_sent
         bytes_recv = net2.bytes_recv - net1.bytes_recv
         return bytes_recv, bytes_sent
@@ -73,12 +73,12 @@ def get_detailed_os_info():
             return "Windows"
     else:
         try:
-            # 尝试读取 os-release 文件获取详细信息
+            # Try reading the os-release file for detailed information
             with open('/etc/os-release') as f:
                 lines = f.readlines()
                 os_info = dict(line.strip().split('=', 1) for line in lines if '=' in line)
                 
-                # 获取发行版名称
+                # Get the distribution name
                 if 'ID' in os_info:
                     distro_id = os_info['ID'].strip('"')
                     if distro_id == 'ubuntu':
@@ -92,13 +92,13 @@ def get_detailed_os_info():
                     elif distro_id == 'rhel':
                         return 'RHEL'
             
-            # 如果上面的方法失败，尝试使用 platform 模块
+            # If the above method fails, try using the platform module
             dist = platform.dist()
             if dist[0]:
                 return dist[0].capitalize()
                 
         except:
-            # 如果都失败了，使用 platform.system()
+            # If all else fails, use platform.system()
             pass
             
     return platform.system()
@@ -116,7 +116,7 @@ def get_cpu_info():
                     if line.startswith('model name'):
                         model = line.split(':')[1].strip()
                         return f"{model} ({psutil.cpu_count()} threads)"
-            # 如果无法读取 model name，返回基本信息
+            # If the model name cannot be read, return basic information
             return f"CPU ({psutil.cpu_count()} threads)"
     except Exception as e:
         print(f"Error getting CPU info: {e}")
@@ -126,23 +126,23 @@ def get_all_disks_usage():
     try:
         total_size = 0
         total_used = 0
-        # 获取所有磁盘分区
+        # Get all disk partitions
         partitions = psutil.disk_partitions()
         for partition in partitions:
             try:
-                # 跟踪所有可以访问的分区
+                # Track all accessible partitions
                 usage = psutil.disk_usage(partition.mountpoint)
                 total_size += usage.total
                 total_used += usage.used
             except (PermissionError, OSError):
-                # 跳过无法访问的分区
+                # Skip inaccessible partitions
                 continue
                 
-        # 如果有有效的磁盘数据
+        # If there is valid disk data
         if total_size > 0:
-            # 计算总体使用百分比
+            # Calculate the overall usage percentage
             usage_percent = (total_used / total_size) * 100
-            # 转换为GB
+            # Convert to GB
             total_size_gb = total_size / (1024 * 1024 * 1024)
             return usage_percent, total_size_gb
             
@@ -158,7 +158,7 @@ def get_server_info():
     
     return {
         'id': SERVER_ID,
-        'name': NODE_NAME,  # 使用全局的 NODE_NAME
+        'name': NODE_NAME,  # Use the global NODE_NAME
         'type': get_server_type(),
         'location': get_location_from_ip(),
         'uptime': int(time.time() - psutil.boot_time()),
@@ -179,14 +179,14 @@ def get_server_type():
         try:
             import wmi
             w = wmi.WMI()
-            # 检查系统型号
+            # Check system model
             for item in w.Win32_ComputerSystem():
                 if any(virt in item.Model.lower() for virt in [
                     'virtual', 'vmware', 'kvm', 'xen', 'hyperv'
                 ]):
                     return "VPS"
                     
-            # 检查制造商
+            # Check manufacturer
             for item in w.Win32_ComputerSystem():
                 if any(virt in item.Manufacturer.lower() for virt in [
                     'vmware', 'microsoft corporation', 'xen', 'qemu', 'innotek'
@@ -239,20 +239,20 @@ def get_server_type():
         except Exception as e:
             print(f"Error detecting server type: {e}")
 
-    # 如果所有检测都未发现虚拟化特征，则认为是物理服务器
+    # If all checks fail to detect virtualization features, then it is a physical server
     return "Dedicated Server"
 
 def get_machine_id():
-    """获取机器的唯一标识符"""
+    """Get the unique identifier of the machine"""
     try:
         if platform.system() == "Windows":
-            # Windows下使用WMI获取系统UUID
+            # Windows uses WMI to get the system UUID
             import wmi
             w = wmi.WMI()
             system_info = w.Win32_ComputerSystemProduct()[0]
             return hashlib.md5(system_info.UUID.encode()).hexdigest()
         else:
-            # Linux系统保持原有逻辑
+            # Linux system maintains the original logic
             hostname = socket.gethostname()
             mac = subprocess.check_output("cat /sys/class/net/$(ls /sys/class/net | head -n 1)/address", 
                                        shell=True).decode().strip()
@@ -260,18 +260,18 @@ def get_machine_id():
             return hashlib.md5(machine_id.encode()).hexdigest()
     except Exception as e:
         print(f"Error getting machine ID: {e}")
-        # 使用主机名作为后备方案
+        # Use the hostname as a fallback
         return hashlib.md5(socket.gethostname().encode()).hexdigest()
 
 def main():
     global NODE_NAME, SERVER_ID
     
-    # 解析命令行参数
+    # Parse command line arguments
     args = parse_arguments()
     if args.name:
         NODE_NAME = args.name
     
-    # 初始化 SERVER_ID
+    # Initialize SERVER_ID
     SERVER_ID = get_machine_id()
     
     print(f"Starting monitoring for server: {SERVER_ID}")
@@ -284,22 +284,22 @@ def main():
             response = requests.post(API_URL, json=system_info)
             
             if response.status_code == 200:
-                print(f"数据上传成功")
+                print(f"Data uploaded successfully")
             else:
-                print(f"数据上传失败: {response.status_code}")
-                print(f"错误信息: {response.text}")
+                print(f"Data upload failed: {response.status_code}")
+                print(f"Error message: {response.text}")
                 
-            print(f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            time.sleep(2)  # 每2秒更新一次
+            print(f"Update time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            time.sleep(2)  # Update every 2 seconds
             
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(5)  # 发生错误时等待5秒后重试
+            time.sleep(5)  # Wait 5 seconds before retrying if an error occurs
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n监控程序已停止")
+        print("\nMonitoring program stopped")
     except Exception as e:
-        print(f"程序异常退出: {e}")
+        print(f"Program exited abnormally: {e}")

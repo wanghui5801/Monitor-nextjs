@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 优化背景渐变 */
+/* Optimize background gradient */
 body {
   @apply bg-gray-50 dark:bg-gray-900;
   min-height: 100vh;
@@ -120,7 +120,7 @@ body.dark {
     @apply text-blue-500 dark:text-blue-400;
   }
 
-  /* 移动端适配 */
+  /* Mobile adaptation */
   .mobile-table-container {
     @apply -mx-2 sm:mx-0 overflow-x-auto;
     -webkit-overflow-scrolling: touch;
@@ -141,22 +141,22 @@ body.dark {
   }
 }
 
-/* 表格悬停效果 */
+/* Table hover effect */
 .table-hover tr:hover td {
   @apply bg-gray-50/70 dark:bg-gray-800/70;
 }
 
-/* 平滑滚动 */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* 选择文本样式 */
+/* Selection text style */
 ::selection {
   @apply bg-blue-500/20;
 }
 
-/* 自定义滚动条 */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   @apply w-2;
 }
@@ -170,7 +170,7 @@ html {
   hover:bg-gray-400/80 dark:hover:bg-gray-500/80 transition-colors;
 }
 
-/* 移除或修改任何可能影响全局布局的样式 */
+/* Remove or modify any styles that may affect global layout */
 body {
   @apply bg-gray-50 dark:bg-gray-900;
 }
@@ -179,5 +179,5 @@ body {
   @apply min-h-screen;
 }
 
-/* 保留其他必要的样式 */
+/* Keep other necessary styles */
 

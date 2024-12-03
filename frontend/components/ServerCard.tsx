@@ -7,17 +7,20 @@ interface ServerCardProps {
 }
 
 const ServerCard: React.FC<ServerCardProps> = ({ server, onToggleExpand }) => {
+    // Network speed formatting
     const formatNetwork = (bytes: number) => {
         if (bytes < 1024) return `${bytes} B/s`;
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB/s`;
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB/s`;
     };
 
+    // Traffic formatting
     const formatTraffic = (bytes: number) => {
         const gb = bytes / (1024 * 1024 * 1024);
         return `${gb.toFixed(2)}G`;
     };
 
+    // Uptime formatting
     const formatUptime = (seconds: number) => {
         const days = Math.floor(seconds / (24 * 60 * 60));
         return `${days} days`;

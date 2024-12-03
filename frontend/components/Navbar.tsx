@@ -7,7 +7,7 @@ const Navbar = () => {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // 等待挂载完成后再渲染,避免水合错误
+  // Wait for mounting to complete before rendering to avoid hydration errors
   useEffect(() => {
     setMounted(true)
   }, [])

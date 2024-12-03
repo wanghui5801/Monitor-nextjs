@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# 检查是否为root用户
+# Check if running as root user
 if [ "$EUID" -ne 0 ]; then 
     echo "Please run as root"
     exit 1
 fi
 
-# 获取节点名称
+# Get node name
 NODE_NAME=$1
 if [ -z "$NODE_NAME" ]; then
     read -p "Enter node name (press Enter to use hostname): " NODE_NAME
@@ -15,7 +15,7 @@ if [ -z "$NODE_NAME" ]; then
     fi
 fi
 
-# 检测Linux发行版
+# Detect Linux distribution
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
@@ -25,7 +25,7 @@ else
     OS="unknown"
 fi
 
-# 安装必要的包
+# Install required packages
 case $OS in
     "debian"|"ubuntu")
         apt-get update
@@ -41,22 +41,22 @@ case $OS in
         ;;
 esac
 
-# 创建项目目录
+# Create project directory
 mkdir -p /opt/server-monitor-client
 cd /opt/server-monitor-client
 
-# 克隆项目
+# Clone project
 git clone https://github.com/wanghui5801/Monitor-nextjs.git .
 
-# 创建虚拟环境
+# Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 安装依赖
+# Install dependencies
 cd client
 pip install psutil requests
 
-# 创建systemd服务
+# Create systemd service
 cat > /etc/systemd/system/server-monitor-client.service << EOL
 [Unit]
 Description=Server Monitor Client
@@ -73,7 +73,7 @@ Restart=always
 WantedBy=multi-user.target
 EOL
 
-# 启动服务
+# Start service
 systemctl daemon-reload
 systemctl enable server-monitor-client
 systemctl start server-monitor-client

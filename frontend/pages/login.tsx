@@ -14,7 +14,7 @@ export default function Login() {
       router.push('/admin');
     }
     
-    // 检查是否需要初始化
+    // Check if initialization is needed
     fetch('http://13.70.189.213:5000/api/auth/status')
       .then(res => res.json())
       .then(data => {

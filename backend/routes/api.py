@@ -22,13 +22,13 @@ def update_server_status(server_id):
         if new_status not in ['running', 'stopped', 'maintenance']:
             return jsonify({'error': 'Invalid status'}), 400
             
-        # 更新服务器状态
+        # Update server status
         server_model.update_server({
             'id': server_id,
             'status': new_status
         })
         
-        # 获取更新后的服务器数据
+        # Get updated server data
         conn = server_model.get_db()
         c = conn.cursor()
         try:
@@ -53,11 +53,11 @@ def update_server():
         if not data or 'id' not in data or 'name' not in data:
             return jsonify({'error': 'Invalid data'}), 400
             
-        # 检查客户端是否被允许
+        # Check if the client is allowed
         if not server_model.is_client_allowed(data['name']):
             return jsonify({'error': 'Client not allowed'}), 403
             
-        # 获取服务器当前状态和排序索引
+        # Get current server status and order index
         conn = server_model.get_db()
         c = conn.cursor()
         try:
@@ -66,7 +66,7 @@ def update_server():
             
             if result:
                 current_status, order_index, first_seen = result
-                # 只在特定条件下更新状态
+                # Update status only under specific conditions
                 if current_status != 'maintenance':
                     data['status'] = 'running'
                 else:
@@ -74,7 +74,7 @@ def update_server():
                 data['order_index'] = order_index
                 data['first_seen'] = first_seen
             else:
-                # 新服务器首次连接
+                # New server first connection
                 data['status'] = 'running'
                 c.execute('SELECT COALESCE(MAX(order_index), 0) FROM servers')
                 data['order_index'] = c.fetchone()[0] - 1
@@ -178,7 +178,7 @@ def update_server_order(server_id):
 @api.route('/servers/<server_id>', methods=['DELETE'])
 def delete_server(server_id):
     try:
-        # 获取服务器名称
+        # Get server name
         conn = server_model.get_db()
         c = conn.cursor()
         try:
@@ -186,9 +186,9 @@ def delete_server(server_id):
             result = c.fetchone()
             if result:
                 client_name = result[0]
-                # 删除服务器记录
+                # Delete server record
                 server_model.delete_server(server_id)
-                # 删除允许的客户端
+                # Delete allowed client
                 server_model.delete_allowed_client(client_name)
                 return jsonify({'status': 'success'}), 200
             return jsonify({'error': 'Server not found'}), 404
@@ -205,7 +205,7 @@ def add_client():
         if not data or 'name' not in data:
             return jsonify({'error': 'Client name is required'}), 400
             
-        # 检查客户端名称是否已存在
+        # Check if the client name already exists
         conn = server_model.get_db()
         c = conn.cursor()
         try:
@@ -213,7 +213,7 @@ def add_client():
             if c.fetchone():
                 return jsonify({'error': 'Client already exists'}), 400
                 
-            # 添加新客户端
+            # Add new client
             server_model.add_allowed_client(data['name'])
             return jsonify({'status': 'success'}), 200
         finally:
@@ -251,11 +251,11 @@ def reset_password():
         if not old_password or not new_password:
             return jsonify({'error': 'Both old and new passwords are required'}), 400
             
-        # 验证旧密码
+        # Verify old password
         if not server_model.verify_password(old_password):
             return jsonify({'error': 'Current password is incorrect'}), 401
             
-        # 设置新密码
+        # Set new password
         success = server_model.set_admin_password(new_password)
         return jsonify({'success': success})
         

@@ -21,23 +21,23 @@ CORS(app, resources={
 })
 app.config.from_object(Config)
 
-# 注册蓝图
+# Register blueprint
 app.register_blueprint(api, url_prefix='/api')
 
-# 初始化数据库
+# Initialize database
 server_model = Server(Config.DATABASE_PATH)
 try:
     server_model.init_db()
 except Exception as e:
     print(f"Database initialization error: {e}")
 
-servers = {}  # 使用字典存储服务器信息，key 为 server_id
+servers = {}  # Use dictionary to store server information, key is server_id
 
-# 创建定时任务调度器
+# Create scheduled task scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-# 添加定时任务，每5秒检查一次服务器状态
+# Add scheduled task, check server status every 5 seconds
 scheduler.add_job(
     func=server_model.check_inactive_servers,
     trigger=IntervalTrigger(seconds=5),
@@ -46,7 +46,7 @@ scheduler.add_job(
     replace_existing=True
 )
 
-# 确保在应用退出时关闭调度器
+# Ensure scheduler is shut down when application exits
 atexit.register(lambda: scheduler.shutdown())
 
 @app.route('/api/servers/<server_id>/status', methods=['PUT'])
@@ -73,17 +73,17 @@ def update_server():
     if not server_id:
         return jsonify({'error': 'Server ID required'}), 400
     
-    # 获取当前服务器状态
+    # Get current server status
     current_server = servers.get(server_id, {})
     current_status = current_server.get('status', 'running')
     
-    # 如果状态不是 running，返回最后一次的数据
+    # If status is not running, return the last data
     if current_status != 'running':
         if current_server:
             return jsonify(current_server)
         return jsonify({'error': 'Server not found'}), 404
     
-    # 状态为 running 时更新数据
+    # Update data when status is running
     servers[server_id] = {**data, 'status': current_status, 'last_update': datetime.now().isoformat()}
     return jsonify(servers[server_id])
 

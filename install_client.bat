@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: 请求管理员权限
+:: Request administrator privileges
 NET SESSION >nul 2>&1
 if %errorLevel% neq 0 (
     echo Please run as administrator
@@ -9,18 +9,18 @@ if %errorLevel% neq 0 (
     exit
 )
 
-:: 获取节点名称
+:: Get node name
 set NODE_NAME=%1
 if "%NODE_NAME%"=="" (
     set /p NODE_NAME=Enter node name (press Enter to use hostname): 
     if "!NODE_NAME!"=="" set NODE_NAME=%COMPUTERNAME%
 )
 
-:: 创建安装目录
+:: Create installation directory
 mkdir C:\server-monitor-client
 cd C:\server-monitor-client
 
-:: 下载并安装Python (如果未安装)
+:: Download and install Python (if not installed)
 where python >nul 2>&1
 if %errorLevel% neq 0 (
     echo Installing Python...
@@ -29,7 +29,7 @@ if %errorLevel% neq 0 (
     del python-installer.exe
 )
 
-:: 下载并安装NSSM
+:: Download and install NSSM
 if not exist "C:\nssm\nssm.exe" (
     echo Installing NSSM...
     curl -L -o nssm.zip https://nssm.cc/release/nssm-2.24.zip
@@ -39,18 +39,18 @@ if not exist "C:\nssm\nssm.exe" (
     del nssm.zip
 )
 
-:: 克隆项目
+:: Clone project
 git clone https://github.com/wanghui5801/Monitor-nextjs.git .
 
-:: 创建虚拟环境
+:: Create virtual environment
 python -m venv venv
 call venv\Scripts\activate
 
-:: 安装依赖
+:: Install dependencies
 cd client
 pip install psutil requests wmi
 
-:: 创建Windows服务
+:: Create Windows service
 echo Creating Windows service...
 nssm install ServerMonitorClient "C:\server-monitor-client\venv\Scripts\python.exe" "C:\server-monitor-client\client\monitor.py --name !NODE_NAME!"
 nssm set ServerMonitorClient AppDirectory "C:\server-monitor-client\client"
@@ -58,7 +58,7 @@ nssm set ServerMonitorClient DisplayName "Server Monitor Client"
 nssm set ServerMonitorClient Description "Server monitoring client service"
 nssm set ServerMonitorClient Start SERVICE_AUTO_START
 
-:: 启动服务
+:: Start service
 net start ServerMonitorClient
 
 echo Installation completed with node name: !NODE_NAME!

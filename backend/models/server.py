@@ -12,7 +12,7 @@ class Server:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         try:
-            # 创建表（如果不存在）
+            # Create table (if not exists)
             c.execute('''
                 CREATE TABLE IF NOT EXISTS servers (
                     id TEXT PRIMARY KEY,
@@ -33,14 +33,14 @@ class Server:
                 )
             ''')
             
-            # 将所有running状态的服务器改为stopped
+            # Change all running servers to stopped
             c.execute('''
                 UPDATE servers 
                 SET status = 'stopped' 
                 WHERE status = 'running'
             ''')
             
-            # 创建允许的客户端表
+            # Create allowed clients table
             c.execute('''
                 CREATE TABLE IF NOT EXISTS allowed_clients (
                     name TEXT PRIMARY KEY,
@@ -48,7 +48,7 @@ class Server:
                 )
             ''')
             
-            # 创建管理员认证表
+            # Create admin authentication table
             c.execute('''
                 CREATE TABLE IF NOT EXISTS admin_auth (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,12 +76,12 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 检查是否是允许的客户端
+            # Check if it's an allowed client
             c.execute('SELECT name FROM allowed_clients WHERE name = ?', (server_data['name'],))
             if not c.fetchone():
                 return False
             
-            # 更新服务器记录
+            # Update server record
             c.execute('''
                 UPDATE servers 
                 SET type = ?,
@@ -172,7 +172,7 @@ class Server:
             conn.close()
 
     def check_server_status(self):
-        """检查所有服务器状态，将超时的服务器标记为stopped"""
+        """Check all server statuses and mark overdue servers as stopped"""
         conn = self.get_db()
         c = conn.cursor()
         try:
@@ -191,13 +191,13 @@ class Server:
             conn.close()
 
     def check_inactive_servers(self):
-        """检查所有服务器状态，将超过5秒未更新的服务器标记为stopped"""
+        """Check all server statuses and mark servers that haven't been updated for more than 5 seconds as stopped"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         try:
             current_time = datetime.now()
             
-            # 更新超过5秒未更新且状态为running的服务器状态为stopped
+            # Update servers that haven't been updated for more than 5 seconds and are in running status to stopped
             c.execute('''
                 UPDATE servers
                 SET status = 'stopped'
@@ -209,7 +209,7 @@ class Server:
                 )
             ''', (current_time.isoformat(),))
             
-            # 更新最近5秒内有更新且状态为stopped的服务器状态为running
+            # Update servers that have been updated in the last 5 seconds and are in stopped status to running
             c.execute('''
                 UPDATE servers
                 SET status = 'running'
@@ -226,7 +226,7 @@ class Server:
             conn.close()
 
     def delete_server(self, server_id: str) -> bool:
-        """删除指定服务器的所有记录"""
+        """Delete all records of the specified server"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         try:
@@ -240,7 +240,7 @@ class Server:
             conn.close()
 
     def add_allowed_client(self, client_name: str):
-        """添加或更新允许的客户端并创建初始服务器记录"""
+        """Add or update allowed clients and create initial server records"""
         if not client_name or not client_name.strip():
             raise Exception("Client name cannot be empty")
         
@@ -248,17 +248,17 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 删除已存在的客户端记录（如果有）
+            # Delete existing client records (if any)
             c.execute('DELETE FROM allowed_clients WHERE name = ?', (client_name,))
             c.execute('DELETE FROM servers WHERE name = ?', (client_name,))
             
-            # 添加到允许的客户端列表
+            # Add to the allowed clients list
             c.execute('''
                 INSERT INTO allowed_clients (name, created_at)
                 VALUES (?, CURRENT_TIMESTAMP)
             ''', (client_name,))
             
-            # 创建一个初始的服务器记录，使用更友好的默认值
+            # Create an initial server record with friendly default values
             server_id = hashlib.md5(client_name.encode('utf-8')).hexdigest()
             c.execute('''
                 INSERT INTO servers 
@@ -268,20 +268,20 @@ class Server:
             ''', (
                 server_id,
                 client_name,
-                'VPS',                # 服务器类型
-                'Pending',            # 位置状态
-                'maintenance',        # 更友好的状态显示
-                1,                    # uptime (1天)
-                1024,                 # network_in (1KB/s)
-                1024,                 # network_out (1KB/s)
-                0,                    # cpu (5%)
-                0,                    # memory (20%)
-                0,                    # disk (30%)
-                'Linux',              # 操作系统
-                0,                    # order_index
-                'N/A',               # cpu_info
-                0,                    # total_memory
-                0,                    # total_disk
+                'VPS',                # Server type
+                'Pending',            # Location status
+                'maintenance',        # Friendly status display
+                1,                    # Uptime (1 day)
+                1024,                 # Network_in (1KB/s)
+                1024,                 # Network_out (1KB/s)
+                0,                    # CPU (5%)
+                0,                    # Memory (20%)
+                0,                    # Disk (30%)
+                'Linux',              # Operating system
+                0,                    # Order index
+                'N/A',               # CPU info
+                0,                    # Total memory
+                0,                    # Total disk
             ))
             
             conn.commit()
@@ -292,7 +292,7 @@ class Server:
             conn.close()
 
     def is_client_allowed(self, client_name: str) -> bool:
-        """检查客户端是否被允许"""
+        """Check if the client is allowed"""
         conn = self.get_db()
         c = conn.cursor()
         try:
@@ -302,13 +302,13 @@ class Server:
             conn.close()
 
     def delete_allowed_client(self, client_name: str):
-        """删除允许的客户端"""
+        """Delete allowed clients"""
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 删除允许的客户端
+            # Delete allowed clients
             c.execute('DELETE FROM allowed_clients WHERE name = ?', (client_name,))
-            # 将相关服务器状态设置为stopped
+            # Set related server status to stopped
             c.execute('''
                 UPDATE servers 
                 SET status = 'stopped' 
@@ -322,15 +322,15 @@ class Server:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         try:
-            # 使用 bcrypt 进行密码加密
+            # Use bcrypt for password encryption
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
             
-            # 检查是否已存在记录
+            # Check if there is already a record
             c.execute('SELECT id FROM admin_auth LIMIT 1')
             result = c.fetchone()
             
             if result:
-                # 更新现有记录
+                # Update existing record
                 c.execute('''
                     UPDATE admin_auth 
                     SET password_hash = ?, 
@@ -338,7 +338,7 @@ class Server:
                     WHERE id = ?
                 ''', (password_hash, result[0]))
             else:
-                # 插入新记录
+                # Insert new record
                 c.execute('''
                     INSERT INTO admin_auth 
                     (password_hash, is_initialized) 

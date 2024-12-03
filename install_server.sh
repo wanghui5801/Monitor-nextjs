@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# 检查是否为root用户
+# Check if running as root user
 if [ "$EUID" -ne 0 ]; then 
     echo "Please run as root"
     exit 1
 fi
 
-# 检测Linux发行版
+# Detect Linux distribution
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
@@ -16,7 +16,7 @@ else
     OS="unknown"
 fi
 
-# 安装必要的包
+# Install required packages
 case $OS in
     "debian"|"ubuntu")
         apt-get update
@@ -25,10 +25,10 @@ case $OS in
     "centos"|"rhel"|"fedora")
         yum -y update
         yum -y install python3 python3-pip git curl
-        # 安装 NodeJS
+        # Install NodeJS
         curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
         yum install -y nodejs
-        # 安装 Nginx
+        # Install Nginx
         yum install -y nginx
         ;;
     *)
@@ -37,19 +37,19 @@ case $OS in
         ;;
 esac
 
-# 创建项目目录
+# Create project directory
 mkdir -p /opt/server-monitor
 cd /opt/server-monitor
 
-# 克隆项目
+# Clone project
 git clone https://github.com/wanghui5801/Monitor-nextjs.git .
 
-# 安装并构建前端
+# Install and build frontend
 cd frontend
 npm install
 npm run build
 
-# 配置 Nginx
+# Configure Nginx
 cat > /etc/nginx/conf.d/monitor.conf << EOL
 server {
     listen 80;
@@ -71,28 +71,28 @@ server {
 }
 EOL
 
-# 重启 Nginx
+# Restart Nginx
 systemctl enable nginx
 systemctl restart nginx
 
-# 安装并配置后端
+# Install and configure backend
 cd ../backend
 
-# 创建虚拟环境
+# Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 安装依赖
+# Install dependencies
 pip install -r requirements.txt
 
-# 创建环境变量文件
+# Create environment variable file
 cat > .env << EOL
 SECRET_KEY=$(openssl rand -hex 32)
 DEBUG=False
 DATABASE_PATH=/opt/server-monitor/backend/monitor.db
 EOL
 
-# 创建后端服务
+# Create backend service
 cat > /etc/systemd/system/server-monitor.service << EOL
 [Unit]
 Description=Server Monitor Backend
@@ -109,12 +109,12 @@ Restart=always
 WantedBy=multi-user.target
 EOL
 
-# 启动后端服务
+# Start backend service
 systemctl daemon-reload
 systemctl enable server-monitor
 systemctl start server-monitor
 
-# 输出安装完成信息
+# Output installation completed information
 echo "Server installation completed!"
 echo "Frontend: http://YOUR_SERVER_IP"
 echo "Backend API: http://YOUR_SERVER_IP/api"
