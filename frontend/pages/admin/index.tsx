@@ -11,12 +11,17 @@ import {
 } from '@heroicons/react/24/outline';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import AdminStats from '../../components/admin/AdminStats';
+import ResetPasswordModal from '../../components/admin/ResetPasswordModal';
+import { useAuth } from '../../hooks/useAuth';
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminDashboard() {
+  const { logout } = useAuth();
   const [clients, setClients] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const fetchClients = async () => {
     try {
@@ -119,23 +124,55 @@ export default function AdminDashboard() {
   return (
     <ProtectedRoute>
       <Layout>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#333',
+              color: '#fff',
+            },
+          }}
+        />
         <div className="py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Client Management
               </h1>
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 space-x-2
-                  bg-blue-600 hover:bg-blue-700 
-                  dark:bg-blue-500 dark:hover:bg-blue-600
-                  text-white rounded-lg shadow-sm
-                  transition-all duration-200 hover:scale-105"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>Add Client</span>
-              </button>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setIsResetModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2
+                    bg-blue-600 hover:bg-blue-700 
+                    dark:bg-blue-500 dark:hover:bg-blue-600
+                    text-white rounded-lg shadow-sm
+                    transition-all duration-200 hover:scale-105"
+                >
+                  Reset Password
+                </button>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 space-x-2
+                    bg-blue-600 hover:bg-blue-700 
+                    dark:bg-blue-500 dark:hover:bg-blue-600
+                    text-white rounded-lg shadow-sm
+                    transition-all duration-200 hover:scale-105"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  <span>Add Client</span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="inline-flex items-center px-4 py-2
+                    bg-gray-600 hover:bg-gray-700 
+                    dark:bg-gray-500 dark:hover:bg-gray-600
+                    text-white rounded-lg shadow-sm
+                    transition-all duration-200 hover:scale-105"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -157,6 +194,10 @@ export default function AdminDashboard() {
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onAdd={handleAddClient}
+        />
+        <ResetPasswordModal
+          isOpen={isResetModalOpen}
+          onClose={() => setIsResetModalOpen(false)}
         />
       </Layout>
     </ProtectedRoute>

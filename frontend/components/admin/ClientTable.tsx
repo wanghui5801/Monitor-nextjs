@@ -1,5 +1,6 @@
 import { Server } from '../../types/server';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface ClientTableProps {
   clients: Server[];
@@ -23,6 +24,40 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onDelete, o
     setEditingOrder({id: '', value: ''});
   };
 
+  const copyToClipboard = useCallback(async (text: string) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      
+      textArea.select();
+      
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        document.execCommand('copy');
+      }
+      
+      document.body.removeChild(textArea);
+      toast.success('Command copied to clipboard!');
+    } catch (err) {
+      console.error('Copy failed:', err);
+      toast.error('Failed to copy command. Please copy manually.');
+    }
+  }, []);
+
+  const getLinuxCommand = (clientName: string) => {
+    return `wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.sh && chmod +x install.sh && sudo ./install.sh "${clientName}"`;
+  };
+
+  const getWindowsCommand = (clientName: string) => {
+    return `powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; Start-Process -FilePath 'install_client.bat' -ArgumentList '${clientName}' -Verb RunAs }"`;
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -42,6 +77,9 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onDelete, o
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Type
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Install Commands
             </th>
           </tr>
         </thead>
@@ -86,6 +124,28 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onDelete, o
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{client.name}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{client.location}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{client.type}</td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex flex-col space-y-2">
+                  <button
+                    onClick={() => copyToClipboard(getLinuxCommand(client.name))}
+                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors duration-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Copy Linux Install
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(getWindowsCommand(client.name))}
+                    className="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors duration-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Copy Windows Install
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

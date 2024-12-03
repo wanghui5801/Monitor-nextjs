@@ -15,8 +15,8 @@ CORS(app, resources={
     r"/api/*": {
         "origins": "*",
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "expose_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
     }
 })
 app.config.from_object(Config)
@@ -116,6 +116,23 @@ def login():
                          app.config['SECRET_KEY'], algorithm='HS256')
         return jsonify({'token': token})
     return jsonify({'error': 'Invalid password'}), 401
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    old_password = data.get('oldPassword')
+    new_password = data.get('newPassword')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Both old and new passwords are required'}), 400
+        
+    # Verify old password
+    if not server_model.verify_password(old_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+        
+    # Set new password
+    success = server_model.set_admin_password(new_password)
+    return jsonify({'success': success})
 
 if __name__ == '__main__':
     app.run(debug=Config.DEBUG, host='0.0.0.0')

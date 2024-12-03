@@ -237,3 +237,28 @@ def get_clients():
     except Exception as e:
         print(f"Error getting clients: {e}")
         return jsonify({'error': str(e)}), 500
+
+@api.route('/auth/reset-password', methods=['POST', 'OPTIONS'])
+def reset_password():
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        data = request.get_json()
+        old_password = data.get('oldPassword')
+        new_password = data.get('newPassword')
+        
+        if not old_password or not new_password:
+            return jsonify({'error': 'Both old and new passwords are required'}), 400
+            
+        # 验证旧密码
+        if not server_model.verify_password(old_password):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+            
+        # 设置新密码
+        success = server_model.set_admin_password(new_password)
+        return jsonify({'success': success})
+        
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        return jsonify({'error': str(e)}), 500

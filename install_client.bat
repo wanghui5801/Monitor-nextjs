@@ -10,8 +10,11 @@ if %errorLevel% neq 0 (
 )
 
 :: 获取节点名称
-set /p NODE_NAME=Enter node name (press Enter to use hostname): 
-if "!NODE_NAME!"=="" set NODE_NAME=%COMPUTERNAME%
+set NODE_NAME=%1
+if "%NODE_NAME%"=="" (
+    set /p NODE_NAME=Enter node name (press Enter to use hostname): 
+    if "!NODE_NAME!"=="" set NODE_NAME=%COMPUTERNAME%
+)
 
 :: 创建安装目录
 mkdir C:\server-monitor-client

@@ -63,19 +63,26 @@ Description=Server Monitor Client
 After=network.target
 
 [Service]
+Type=simple
 User=root
 WorkingDirectory=/opt/server-monitor-client/client
 Environment="PATH=/opt/server-monitor-client/venv/bin"
 ExecStart=/opt/server-monitor-client/venv/bin/python monitor.py --name "${NODE_NAME}"
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOL
+
+# 设置权限
+chmod 644 /etc/systemd/system/server-monitor-client.service
 
 # 启动服务
 systemctl daemon-reload
 systemctl enable server-monitor-client
 systemctl start server-monitor-client
 
-echo "Client installation completed with node name: ${NODE_NAME}"
+echo "Installation completed successfully!"
+echo "Service status:"
+systemctl status server-monitor-client 

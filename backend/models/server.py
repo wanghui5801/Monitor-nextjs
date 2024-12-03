@@ -52,7 +52,7 @@ class Server:
             c.execute('''
                 CREATE TABLE IF NOT EXISTS admin_auth (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    password_hash TEXT NOT NULL,
+                    password_hash BLOB NOT NULL,
                     is_initialized BOOLEAN DEFAULT FALSE
                 )
             ''')
@@ -324,8 +324,27 @@ class Server:
         try:
             # 使用 bcrypt 进行密码加密
             password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-            c.execute('INSERT OR REPLACE INTO admin_auth (password_hash, is_initialized) VALUES (?, TRUE)', 
-                     (password_hash,))
+            
+            # 检查是否已存在记录
+            c.execute('SELECT id FROM admin_auth LIMIT 1')
+            result = c.fetchone()
+            
+            if result:
+                # 更新现有记录
+                c.execute('''
+                    UPDATE admin_auth 
+                    SET password_hash = ?, 
+                        is_initialized = TRUE 
+                    WHERE id = ?
+                ''', (password_hash, result[0]))
+            else:
+                # 插入新记录
+                c.execute('''
+                    INSERT INTO admin_auth 
+                    (password_hash, is_initialized) 
+                    VALUES (?, TRUE)
+                ''', (password_hash,))
+            
             conn.commit()
             return True
         except Exception as e:
@@ -340,8 +359,10 @@ class Server:
         try:
             c.execute('SELECT password_hash FROM admin_auth WHERE is_initialized = TRUE')
             result = c.fetchone()
+            
             if not result:
                 return False
+            
             stored_hash = result[0]
             return bcrypt.checkpw(password.encode(), stored_hash)
         except Exception as e:
