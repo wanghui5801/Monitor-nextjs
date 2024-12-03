@@ -6,6 +6,10 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Configure API URL
+read -p "Enter server IP address: " SERVER_IP
+sed -i "s|API_URL = .*|API_URL = \"http://${SERVER_IP}:5000/api/servers/update\"|" client/monitor.py
+
 # Get node name
 NODE_NAME=$1
 if [ -z "$NODE_NAME" ]; then
