@@ -17,7 +17,7 @@ SERVER_ID = None  # Will be initialized after get_machine_id()
 try:
     from config import API_URL
 except ImportError:
-    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
+    API_URL = os.getenv('API_URL', 'http://104.36.84.214:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
@@ -291,38 +291,54 @@ def get_machine_id():
         # Use the hostname as a fallback
         return hashlib.md5(socket.gethostname().encode()).hexdigest()
 
+def update_server_with_retry(server_info, max_retries=3, retry_delay=1):
+    """Send update with retry mechanism"""
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(API_URL, json=server_info, timeout=5)
+            if response.status_code == 200:
+                print(f"Data uploaded successfully")
+                return True
+            else:
+                print(f"Update failed (attempt {attempt + 1}/{max_retries}): {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Connection error (attempt {attempt + 1}/{max_retries}): {e}")
+        
+        if attempt < max_retries - 1:
+            time.sleep(retry_delay)
+    
+    return False
+
 def main():
     global NODE_NAME, SERVER_ID
     
-    # Parse command line arguments
     args = parse_arguments()
     if args.name:
         NODE_NAME = args.name
     
-    # Initialize SERVER_ID
     SERVER_ID = get_machine_id()
     
     print(f"Starting monitoring for server: {SERVER_ID}")
     print(f"Node name: {NODE_NAME}")
     print(f"Sending data to: {API_URL}")
     
+    consecutive_failures = 0
     while True:
         try:
             system_info = get_server_info()
-            response = requests.post(API_URL, json=system_info)
-            
-            if response.status_code == 200:
-                print(f"Data uploaded successfully")
+            if update_server_with_retry(system_info):
+                consecutive_failures = 0
+                time.sleep(3)  # Increase update interval to 3 seconds
             else:
-                print(f"Data upload failed: {response.status_code}")
-                print(f"Error message: {response.text}")
-                
-            print(f"Update time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            time.sleep(2)  # Update every 2 seconds
-            
+                consecutive_failures += 1
+                if consecutive_failures >= 3:
+                    print("Multiple consecutive failures, waiting longer before retry")
+                    time.sleep(10)  # Wait longer after multiple failures
+                else:
+                    time.sleep(5)
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(5)  # Wait 5 seconds before retrying if an error occurs
+            time.sleep(5)
 
 if __name__ == "__main__":
     try:

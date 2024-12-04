@@ -29,8 +29,10 @@ app.register_blueprint(api, url_prefix='/api')
 server_model = Server(Config.DATABASE_PATH)
 try:
     server_model.init_db()
+    print("Database initialized successfully")
 except Exception as e:
     print(f"Database initialization error: {e}")
+    exit(1)  # Exit if database initialization fails
 
 servers = {}  # Use dictionary to store server information, key is server_id
 

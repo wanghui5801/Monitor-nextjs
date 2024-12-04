@@ -51,8 +51,6 @@ def update_server():
     try:
         data = request.json
         print(f"Received update data: {data}")
-        print(f"Location: {data.get('location')}")
-        print(f"IP Address: {data.get('ip_address')}")
         
         if not data or 'id' not in data or 'name' not in data:
             return jsonify({'error': 'Invalid data'}), 400
@@ -61,36 +59,35 @@ def update_server():
         if not server_model.is_client_allowed(data['name']):
             return jsonify({'error': 'Client not allowed'}), 403
             
-        # Get current server status and order index
+        # Get current server status
         conn = server_model.get_db()
         c = conn.cursor()
         try:
-            c.execute('SELECT status, order_index, first_seen FROM servers WHERE id = ?', (data['id'],))
+            c.execute('SELECT status, order_index FROM servers WHERE id = ?', (data['id'],))
             result = c.fetchone()
             
             if result:
-                current_status, order_index, first_seen = result
-                # Update status only under specific conditions
-                if current_status != 'maintenance':
+                current_status, order_index = result
+                # Update status based on current state
+                if current_status in ['maintenance', 'stopped']:
                     data['status'] = 'running'
-                else:
-                    data['status'] = current_status
+                elif current_status == 'running':
+                    data['status'] = 'running'  # 保持运行状态
                 data['order_index'] = order_index
-                data['first_seen'] = first_seen
             else:
-                # New server first connection
+                # 新服务器首次连接
                 data['status'] = 'running'
                 c.execute('SELECT COALESCE(MAX(order_index), 0) FROM servers')
                 data['order_index'] = c.fetchone()[0] - 1
-                data['first_seen'] = datetime.now().isoformat()
             
             server_model.update_server(data)
             return jsonify({'status': 'success'}), 200
             
         finally:
             conn.close()
+            
     except Exception as e:
-        print(f"Error updating server: {e}")
+        print(f"Error in update_server: {e}")
         return jsonify({'error': str(e)}), 500
 
 @api.route('/servers', methods=['GET'])
@@ -255,4 +252,25 @@ def reset_password():
         
     except Exception as e:
         print(f"Error resetting password: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/servers/<server_id>/heartbeat', methods=['POST'])
+def server_heartbeat(server_id):
+    """Lightweight heartbeat endpoint"""
+    try:
+        conn = server_model.get_db()
+        c = conn.cursor()
+        try:
+            current_time = datetime.now().isoformat()
+            c.execute('''
+                UPDATE servers 
+                SET last_update = ?, status = 'running'
+                WHERE id = ? AND status != 'maintenance'
+            ''', (current_time, server_id))
+            conn.commit()
+            return jsonify({'status': 'success'}), 200
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"Error in heartbeat: {e}")
         return jsonify({'error': str(e)}), 500

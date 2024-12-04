@@ -3,16 +3,22 @@ import sqlite3
 from typing import Dict, List
 import bcrypt
 import hashlib
+import os
 
 class Server:
     def __init__(self, db_path: str):
         self.db_path = db_path
 
     def init_db(self):
+        """Initialize database and create required tables if they don't exist"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
+        
+        # Ensure the database directory exists
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        
         try:
-            # Create table (if not exists)
+            # Create tables (if not exists)
             c.execute('''
                 CREATE TABLE IF NOT EXISTS servers (
                     id TEXT PRIMARY KEY,
@@ -33,8 +39,7 @@ class Server:
                     total_disk REAL,
                     order_index INTEGER DEFAULT 0,
                     first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    ip_address TEXT
+                    last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             
@@ -62,6 +67,10 @@ class Server:
                 )
             ''')
             conn.commit()
+            print("Database initialized successfully")
+        except Exception as e:
+            print(f"Error initializing database: {e}")
+            raise
         finally:
             conn.close()
 
@@ -206,39 +215,37 @@ class Server:
             conn.close()
 
     def check_inactive_servers(self):
-        """Check all server statuses and mark servers that haven't been updated for more than 5 seconds as stopped"""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
+        """Check and update server statuses based on last update time"""
         try:
-            current_time = datetime.now()
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
             
-            # Update servers that haven't been updated for more than 5 seconds and are in running status to stopped
-            c.execute('''
-                UPDATE servers
-                SET status = 'stopped'
-                WHERE id IN (
-                    SELECT id FROM servers 
-                    WHERE status = 'running'
-                    AND status != 'maintenance'
-                    AND datetime(last_update) <= datetime(?, '-5 seconds')
-                )
-            ''', (current_time.isoformat(),))
-            
-            # Update servers that have been updated in the last 5 seconds and are in stopped status to running
-            c.execute('''
-                UPDATE servers
-                SET status = 'running'
-                WHERE id IN (
-                    SELECT id FROM servers 
-                    WHERE status = 'stopped'
-                    AND status != 'maintenance'
-                    AND datetime(last_update) >= datetime(?, '-5 seconds')
-                )
-            ''', (current_time.isoformat(),))
-            
-            conn.commit()
-        finally:
-            conn.close()
+            try:
+                current_time = datetime.now()
+                
+                # 只更新 running 状态的服务器
+                c.execute('''
+                    UPDATE servers
+                    SET status = 'stopped'
+                    WHERE id IN (
+                        SELECT id FROM servers 
+                        WHERE status = 'running'
+                        AND datetime(last_update) < datetime(?, '-10 seconds')
+                        AND status != 'maintenance'
+                    )
+                ''', (current_time.isoformat(),))
+                
+                conn.commit()
+                
+                # 记录状态变更
+                changed_rows = c.rowcount
+                if changed_rows > 0:
+                    print(f"Marked {changed_rows} servers as stopped due to inactivity")
+                
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"Error in check_inactive_servers: {e}")
 
     def delete_server(self, server_id: str) -> bool:
         """Delete all records of the specified server"""

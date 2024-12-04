@@ -23,7 +23,7 @@ export default function Home() {
     }
 
     fetchServers()
-    const interval = setInterval(fetchServers, 2000)
+    const interval = setInterval(fetchServers, 5000)
     return () => clearInterval(interval)
   }, [])
 
