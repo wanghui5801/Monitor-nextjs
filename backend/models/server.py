@@ -19,6 +19,7 @@ class Server:
                     name TEXT,
                     type TEXT,
                     location TEXT,
+                    ip_address TEXT,
                     status TEXT DEFAULT 'stopped',
                     uptime INTEGER,
                     network_in REAL,
@@ -32,7 +33,8 @@ class Server:
                     total_disk REAL,
                     order_index INTEGER DEFAULT 0,
                     first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ip_address TEXT
                 )
             ''')
             
@@ -76,9 +78,17 @@ class Server:
         return servers
 
     def update_server(self, server_data: Dict):
+        print(f"Updating server with data:")
+        print(f"Location: {server_data.get('location')}")
+        print(f"IP Address: {server_data.get('ip_address')}")
         conn = self.get_db()
         c = conn.cursor()
         try:
+            # 在执行更新前检查当前值
+            c.execute('SELECT location, ip_address FROM servers WHERE name = ?', (server_data['name'],))
+            current = c.fetchone()
+            print(f"Current values in DB - Location: {current[0]}, IP: {current[1]}")
+            
             # Check if it's an allowed client
             c.execute('SELECT name FROM allowed_clients WHERE name = ?', (server_data['name'],))
             if not c.fetchone():
@@ -89,6 +99,7 @@ class Server:
                 UPDATE servers 
                 SET type = ?,
                     location = ?,
+                    ip_address = ?,
                     status = 'running',
                     uptime = ?,
                     network_in = ?,
@@ -105,6 +116,7 @@ class Server:
             ''', (
                 server_data.get('type', 'Unknown'),
                 server_data.get('location', 'UN'),
+                server_data.get('ip_address', '127.0.0.1'),
                 server_data.get('uptime', 0),
                 server_data.get('network_in', 0),
                 server_data.get('network_out', 0),
@@ -266,25 +278,27 @@ class Server:
             c.execute('''
                 INSERT INTO servers 
                 (id, name, type, location, status, uptime, network_in, network_out,
-                 cpu, memory, disk, os_type, order_index, last_update, cpu_info, total_memory, total_disk)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?)
+                 cpu, memory, disk, os_type, order_index, last_update, cpu_info, 
+                 total_memory, total_disk, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
             ''', (
                 server_id,
                 client_name,
-                'VPS',                # Server type
-                'Pending',            # Location status
-                'maintenance',        # Friendly status display
-                1,                    # Uptime (1 day)
-                1024,                 # Network_in (1KB/s)
-                1024,                 # Network_out (1KB/s)
-                0,                    # CPU (5%)
-                0,                    # Memory (20%)
-                0,                    # Disk (30%)
-                'Linux',              # Operating system
-                0,                    # Order index
-                'N/A',               # CPU info
-                0,                    # Total memory
-                0,                    # Total disk
+                'VPS',
+                'Pending',
+                'maintenance',
+                1,
+                1024,
+                1024,
+                0,
+                0,
+                0,
+                'Linux',
+                0,
+                'N/A',
+                0,
+                0,
+                'N/A'
             ))
             
             conn.commit()

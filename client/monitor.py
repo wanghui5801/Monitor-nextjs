@@ -156,6 +156,28 @@ def get_all_disks_usage():
         print(f"Error getting disk usage: {e}")
         return 0, 0
 
+def get_ip_address():
+    ip = None
+    try:
+        response = requests.get('https://api.ipify.org', timeout=5)
+        if response.ok:
+            ip = response.text.strip()
+            print(f"Got public IP: {ip}")
+            return ip
+    except Exception as e:
+        print(f"Failed to get public IP: {e}")
+    
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        print(f"Got local IP: {ip}")
+        return ip
+    except Exception as e:
+        print(f"Failed to get local IP: {e}")
+        return '127.0.0.1'
+
 def get_server_info():
     network_in, network_out = get_network_speed()
     memory = psutil.virtual_memory()
@@ -163,9 +185,10 @@ def get_server_info():
     
     return {
         'id': SERVER_ID,
-        'name': NODE_NAME,  # Use the global NODE_NAME
+        'name': NODE_NAME,
         'type': get_server_type(),
         'location': get_location_from_ip(),
+        'ip_address': get_ip_address(),
         'uptime': int(time.time() - psutil.boot_time()),
         'network_in': network_in,
         'network_out': network_out,

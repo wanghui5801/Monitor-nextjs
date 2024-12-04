@@ -3,6 +3,7 @@ export interface Server {
     name: string;
     type: string;
     location: string;
+    ip_address: string;
     status: string;
     uptime: number;
     network_in: number;

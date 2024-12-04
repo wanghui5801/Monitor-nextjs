@@ -50,6 +50,10 @@ def update_server_status(server_id):
 def update_server():
     try:
         data = request.json
+        print(f"Received update data: {data}")
+        print(f"Location: {data.get('location')}")
+        print(f"IP Address: {data.get('ip_address')}")
+        
         if not data or 'id' not in data or 'name' not in data:
             return jsonify({'error': 'Invalid data'}), 400
             
@@ -92,39 +96,29 @@ def update_server():
 @api.route('/servers', methods=['GET'])
 def get_servers():
     try:
-        conn = sqlite3.connect(Config.DATABASE_PATH)
+        conn = server_model.get_db()
         c = conn.cursor()
         c.execute('''
-            SELECT id, name, type, location, status, uptime, network_in, network_out,
-                   cpu, memory, disk, os_type, order_index, cpu_info, total_memory, total_disk,
-                   last_update
-            FROM servers
-            ORDER BY order_index ASC
+            SELECT id, name, type, location, status, uptime, 
+                   network_in, network_out, cpu, memory, disk, 
+                   os_type, cpu_info, total_memory, total_disk, 
+                   ip_address, order_index  -- 确保包含 ip_address
+            FROM servers 
+            ORDER BY order_index DESC
         ''')
-        servers = []
-        for row in c.fetchall():
-            servers.append({
-                'id': row[0],
-                'name': row[1],
-                'type': row[2],
-                'location': row[3],
-                'status': row[4],
-                'uptime': row[5],
-                'network_in': row[6],
-                'network_out': row[7],
-                'cpu': row[8],
-                'memory': row[9],
-                'disk': row[10],
-                'os_type': row[11],
-                'order_index': row[12],
-                'cpu_info': row[13],
-                'total_memory': row[14],
-                'total_disk': row[15],
-                'last_update': row[16]
-            })
-        return jsonify(servers)
+        servers = c.fetchall()
+        columns = [description[0] for description in c.description]
+        
+        # 转换为字典列表
+        result = []
+        for server in servers:
+            server_dict = dict(zip(columns, server))
+            print(f"Server data: {server_dict}")  # 添加调试日志
+            result.append(server_dict)
+            
+        return jsonify(result)
     except Exception as e:
-        print(f"Error fetching servers: {e}")
+        print(f"Error getting servers: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
@@ -136,7 +130,7 @@ def get_server_status(server_id):
         c = conn.cursor()
         c.execute('SELECT * FROM servers WHERE id = ? ORDER BY last_update DESC LIMIT 1', (server_id,))
         server_data = c.fetchone()
-        
+        columns = [description[0] for description in c.description]
         if not server_data:
             return jsonify({'error': 'Server not found'}), 404
             

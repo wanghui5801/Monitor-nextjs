@@ -26,14 +26,17 @@ export default function AdminDashboard() {
 
   const fetchClients = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_URL}/api/servers`);
-      if (!response.ok) throw new Error('Failed to fetch clients');
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients');
+      }
       const data = await response.json();
+      console.log('Received clients data:', data);
       setClients(data);
-      setError(null);
     } catch (error) {
-      setError('Error fetching clients');
       console.error('Error fetching clients:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch clients');
     } finally {
       setLoading(false);
     }
