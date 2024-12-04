@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
+import { API_URL } from '../config/config';
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -15,7 +16,7 @@ export default function Login() {
     }
     
     // Check if initialization is needed
-    fetch('http://13.70.189.213:5000/api/auth/status')
+    fetch(`${API_URL}/api/auth/status`)
       .then(res => res.json())
       .then(data => {
         setIsInitializing(!data.initialized);
@@ -28,7 +29,7 @@ export default function Login() {
     
     try {
       if (isInitializing) {
-        const initRes = await fetch('http://13.70.189.213:5000/api/auth/initialize', {
+        const initRes = await fetch(`${API_URL}/api/auth/initialize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password })

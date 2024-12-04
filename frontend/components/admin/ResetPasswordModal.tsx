@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { API_URL } from '../../config/config';
 
 interface ResetPasswordModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
     }
 
     try {
-      const response = await fetch('http://13.70.189.213:5000/api/auth/reset-password', {
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
