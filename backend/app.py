@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import atexit
-import PyJWT as jwt
+import jwt
 import sqlite3
 import os
 
