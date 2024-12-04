@@ -138,7 +138,7 @@ def reset_password():
     success = server_model.set_admin_password(new_password)
     return jsonify({'success': success})
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', ping_timeout=60)
 
 # 存储客户端最后更新时间
 client_last_update = {}
@@ -161,6 +161,7 @@ def handle_server_update(data):
         client_last_update[data['id']] = datetime.now()
         
         # 更新服务器状态
+        data['status'] = 'running'  # 确保状态为running
         server_model.update_server(data)
         
         # 广播更新给所有客户端
@@ -171,7 +172,7 @@ def handle_server_update(data):
 def check_inactive_clients():
     """检查不活跃的客户端"""
     current_time = datetime.now()
-    threshold = current_time - timedelta(seconds=10)
+    threshold = current_time - timedelta(seconds=20)  # 延长到20秒
     
     for client_id, last_update in client_last_update.items():
         if last_update < threshold:
@@ -182,8 +183,8 @@ def check_inactive_clients():
 
 # 启动定时任务
 scheduler = BackgroundScheduler()
-scheduler.add_job(check_inactive_clients, 'interval', seconds=5)
+scheduler.add_job(check_inactive_clients, 'interval', seconds=10)  # 检查间隔改为10秒
 scheduler.start()
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

@@ -18,7 +18,7 @@ SERVER_ID = None  # Will be initialized after get_machine_id()
 try:
     from config import API_URL
 except ImportError:
-    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
+    API_URL = os.getenv('API_URL', 'http://104.36.84.214:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
@@ -322,6 +322,31 @@ def connect():
 def disconnect():
     print('Disconnected from server')
 
+def get_system_info_buffer():
+    """缓冲系统信息，减少 I/O 操作"""
+    global _last_network_io
+    global _last_disk_io
+    
+    current_time = time.time()
+    if not hasattr(get_system_info_buffer, '_last_full_update'):
+        get_system_info_buffer._last_full_update = 0
+        get_system_info_buffer._cached_info = None
+    
+    # 每5秒进行一次完整更新
+    if current_time - get_system_info_buffer._last_full_update >= 5:
+        get_system_info_buffer._cached_info = get_server_info()
+        get_system_info_buffer._last_full_update = current_time
+        return get_system_info_buffer._cached_info
+    
+    # 只更新频繁变化的指标
+    cached_info = get_system_info_buffer._cached_info.copy()
+    cached_info.update({
+        'cpu': psutil.cpu_percent(),
+        'memory': psutil.virtual_memory().percent,
+        'uptime': int(time.time() - psutil.boot_time())
+    })
+    return cached_info
+
 def main():
     global NODE_NAME, SERVER_ID
     
@@ -335,22 +360,17 @@ def main():
     print(f"Node name: {NODE_NAME}")
     print(f"Sending data to: {API_URL}")
     
-    consecutive_failures = 0
     while True:
         try:
             if not sio.connected:
                 sio.connect(API_URL)
             
-            system_info = get_server_info()
+            system_info = get_system_info_buffer()
             sio.emit('server_update', system_info)
-            time.sleep(2)  # 每2秒发送一次更新
+            time.sleep(1)  # 更新间隔改为1秒
             
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(RETRY_INTERVAL)
-            
-        if not sio.connected:
-            print("Attempting to reconnect...")
             time.sleep(RETRY_INTERVAL)
 
 if __name__ == "__main__":

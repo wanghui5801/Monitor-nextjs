@@ -208,12 +208,12 @@ class Server:
         try:
             current_time = datetime.now()
             
-            # 更新超过10秒未收到数据的运行中服务器状态为stopped
+            # 更新超过20秒未收到数据的运行中服务器状态为stopped
             c.execute('''
                 UPDATE servers
                 SET status = 'stopped'
                 WHERE status = 'running'
-                AND datetime(last_update) < datetime(?, '-10 seconds')
+                AND datetime(last_update) < datetime(?, '-20 seconds')
                 AND status != 'maintenance'
             ''', (current_time.isoformat(),))
             
