@@ -110,13 +110,8 @@ main() {
     
     # Frontend setup
     cd frontend || exit
-    echo "NEXT_PUBLIC_API_URL=http://${SERVER_IP}:5000" > .env.local
     if ! npm install; then
         print_message "Failed to install frontend dependencies" "$RED"
-        exit 1
-    fi
-    if ! npm run build; then
-        print_message "Failed to build frontend" "$RED"
         exit 1
     fi
     
@@ -128,13 +123,6 @@ main() {
         print_message "Failed to install Python dependencies" "$RED"
         exit 1
     fi
-
-    # Create environment file
-    cat > .env << EOL
-SECRET_KEY=$(openssl rand -hex 32)
-DEBUG=False
-DATABASE_PATH=/opt/server-monitor/backend/monitor.db
-EOL
 
     # Create logs directory
     mkdir -p /opt/server-monitor/logs
