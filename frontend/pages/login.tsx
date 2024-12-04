@@ -13,14 +13,27 @@ export default function Login() {
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/admin');
+      return;
     }
     
-    // Check if initialization is needed
-    fetch(`${API_URL}/api/auth/status`)
-      .then(res => res.json())
-      .then(data => {
+    const checkInitialization = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/status`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
+        const data = await response.json();
         setIsInitializing(!data.initialized);
-      });
+      } catch (error) {
+        console.error('Error checking initialization:', error);
+        setIsInitializing(true);
+      }
+    };
+
+    checkInitialization();
   }, [isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +44,10 @@ export default function Login() {
       if (isInitializing) {
         const initRes = await fetch(`${API_URL}/api/auth/initialize`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
           body: JSON.stringify({ password })
         });
         
@@ -39,7 +55,6 @@ export default function Login() {
           throw new Error('Failed to initialize');
         }
         
-        // After successful initialization, proceed with login
         await login(password);
         router.push('/admin');
       } else {

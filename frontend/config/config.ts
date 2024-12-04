@@ -4,8 +4,9 @@ const getApiUrl = () => {
   }
   
   if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    return `http://${hostname}:5000`;
+    return `${protocol}//${hostname}:5000`;
   }
   
   return 'http://localhost:5000';
