@@ -18,7 +18,7 @@ SERVER_ID = None  # Will be initialized after get_machine_id()
 try:
     from config import API_URL
 except ImportError:
-    API_URL = os.getenv('API_URL', 'http://104.36.84.214:5000/api/servers/update')
+    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
