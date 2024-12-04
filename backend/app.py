@@ -10,6 +10,7 @@ import atexit
 import jwt
 import sqlite3
 import os
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -137,5 +138,52 @@ def reset_password():
     success = server_model.set_admin_password(new_password)
     return jsonify({'success': success})
 
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# 存储客户端最后更新时间
+client_last_update = {}
+
+@socketio.on('connect')
+def handle_connect():
+    print(f"Client connected: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print(f"Client disconnected: {request.sid}")
+
+@socketio.on('server_update')
+def handle_server_update(data):
+    try:
+        if not data or 'id' not in data or 'name' not in data:
+            return
+        
+        # 更新最后活动时间
+        client_last_update[data['id']] = datetime.now()
+        
+        # 更新服务器状态
+        server_model.update_server(data)
+        
+        # 广播更新给所有客户端
+        emit('server_status_update', data, broadcast=True)
+    except Exception as e:
+        print(f"Error handling server update: {e}")
+
+def check_inactive_clients():
+    """检查不活跃的客户端"""
+    current_time = datetime.now()
+    threshold = current_time - timedelta(seconds=10)
+    
+    for client_id, last_update in client_last_update.items():
+        if last_update < threshold:
+            server_model.update_server({
+                'id': client_id,
+                'status': 'stopped'
+            })
+
+# 启动定时任务
+scheduler = BackgroundScheduler()
+scheduler.add_job(check_inactive_clients, 'interval', seconds=5)
+scheduler.start()
+
 if __name__ == '__main__':
-    app.run(debug=Config.DEBUG, host='0.0.0.0')
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

@@ -87,29 +87,34 @@ class Server:
         return servers
 
     def update_server(self, server_data: Dict):
-        print(f"Updating server with data:")
-        print(f"Location: {server_data.get('location')}")
-        print(f"IP Address: {server_data.get('ip_address')}")
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 在执行更新前检查当前值
-            c.execute('SELECT location, ip_address FROM servers WHERE name = ?', (server_data['name'],))
+            # 检查当前服务器状态
+            c.execute('SELECT status FROM servers WHERE name = ?', (server_data['name'],))
             current = c.fetchone()
-            print(f"Current values in DB - Location: {current[0]}, IP: {current[1]}")
             
-            # Check if it's an allowed client
-            c.execute('SELECT name FROM allowed_clients WHERE name = ?', (server_data['name'],))
-            if not c.fetchone():
-                return False
+            # 如果收到数据更新，状态应该设置为running
+            # 除非当前状态是maintenance且是首次连接
+            if current and current[0] == 'maintenance':
+                first_update = True
+                c.execute('SELECT last_update FROM servers WHERE name = ?', (server_data['name'],))
+                last_update = c.fetchone()
+                if last_update and last_update[0] != 'CURRENT_TIMESTAMP':
+                    first_update = False
+                
+                if not first_update:
+                    server_data['status'] = 'running'
+            else:
+                server_data['status'] = 'running'
             
-            # Update server record
+            # 更新服务器记录
             c.execute('''
                 UPDATE servers 
                 SET type = ?,
                     location = ?,
                     ip_address = ?,
-                    status = 'running',
+                    status = ?,
                     uptime = ?,
                     network_in = ?,
                     network_out = ?,
@@ -126,6 +131,7 @@ class Server:
                 server_data.get('type', 'Unknown'),
                 server_data.get('location', 'UN'),
                 server_data.get('ip_address', '127.0.0.1'),
+                server_data['status'],
                 server_data.get('uptime', 0),
                 server_data.get('network_in', 0),
                 server_data.get('network_out', 0),
@@ -196,21 +202,28 @@ class Server:
             conn.close()
 
     def check_server_status(self):
-        """Check all server statuses and mark overdue servers as stopped"""
+        """统一的服务器状态检查方法"""
         conn = self.get_db()
         c = conn.cursor()
         try:
             current_time = datetime.now()
+            
+            # 更新超过10秒未收到数据的运行中服务器状态为stopped
             c.execute('''
                 UPDATE servers
                 SET status = 'stopped'
-                WHERE id IN (
-                    SELECT id FROM servers 
-                    WHERE status = 'running' 
-                    AND (strftime('%s', ?) - strftime('%s', last_update)) > 30
-                )
+                WHERE status = 'running'
+                AND datetime(last_update) < datetime(?, '-10 seconds')
+                AND status != 'maintenance'
             ''', (current_time.isoformat(),))
+            
+            changed = c.rowcount
+            if changed > 0:
+                print(f"Marked {changed} servers as stopped due to inactivity")
+            
             conn.commit()
+        except Exception as e:
+            print(f"Error in check_server_status: {e}")
         finally:
             conn.close()
 

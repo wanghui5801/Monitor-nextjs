@@ -7,6 +7,7 @@ import socket
 import hashlib
 import subprocess
 import argparse
+from socketio import Client
 
 # Global variable definitions
 CACHED_LOCATION = None
@@ -17,7 +18,7 @@ SERVER_ID = None  # Will be initialized after get_machine_id()
 try:
     from config import API_URL
 except ImportError:
-    API_URL = os.getenv('API_URL', 'http://104.36.84.214:5000/api/servers/update')
+    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
@@ -309,6 +310,18 @@ def update_server_with_retry(server_info, max_retries=3, retry_delay=1):
     
     return False
 
+sio = Client()
+RETRY_INTERVAL = 5
+MAX_RETRIES = 3
+
+@sio.event
+def connect():
+    print('Connected to server')
+
+@sio.event
+def disconnect():
+    print('Disconnected from server')
+
 def main():
     global NODE_NAME, SERVER_ID
     
@@ -325,25 +338,27 @@ def main():
     consecutive_failures = 0
     while True:
         try:
+            if not sio.connected:
+                sio.connect(API_URL)
+            
             system_info = get_server_info()
-            if update_server_with_retry(system_info):
-                consecutive_failures = 0
-                time.sleep(3)  # Increase update interval to 3 seconds
-            else:
-                consecutive_failures += 1
-                if consecutive_failures >= 3:
-                    print("Multiple consecutive failures, waiting longer before retry")
-                    time.sleep(10)  # Wait longer after multiple failures
-                else:
-                    time.sleep(5)
+            sio.emit('server_update', system_info)
+            time.sleep(2)  # 每2秒发送一次更新
+            
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(5)
+            time.sleep(RETRY_INTERVAL)
+            
+        if not sio.connected:
+            print("Attempting to reconnect...")
+            time.sleep(RETRY_INTERVAL)
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        if sio.connected:
+            sio.disconnect()
         print("\nMonitoring program stopped")
     except Exception as e:
         print(f"Program exited abnormally: {e}")
