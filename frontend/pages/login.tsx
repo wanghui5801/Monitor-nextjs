@@ -22,8 +22,7 @@ export default function Login() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-          },
-          credentials: 'include'
+          }
         });
         const data = await response.json();
         setIsInitializing(!data.initialized);
