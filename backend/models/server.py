@@ -251,6 +251,13 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
+            # Add ip_address column to the servers table if it doesn't exist
+            c.execute('''
+                ALTER TABLE servers ADD COLUMN ip_address TEXT;
+            ''')
+        except Exception:  # Changed from bare except to Exception
+            pass  # Column might already exist
+            
             # Delete existing client records (if any)
             c.execute('DELETE FROM allowed_clients WHERE name = ?', (client_name,))
             c.execute('DELETE FROM servers WHERE name = ?', (client_name,))

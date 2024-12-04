@@ -268,6 +268,27 @@ def get_machine_id():
         # Use the hostname as a fallback
         return hashlib.md5(socket.gethostname().encode()).hexdigest()
 
+def get_ip_address():
+    try:
+        response = requests.get('https://api.ipify.org', timeout=5)
+        return response.text.strip()
+    except:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return 'Unknown'
+
+def collect_metrics():
+    metrics = {
+        # Existing metrics
+        'ip_address': get_ip_address(),
+    }
+    return metrics
+
 def main():
     global NODE_NAME, SERVER_ID
     

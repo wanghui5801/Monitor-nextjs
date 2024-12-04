@@ -17,4 +17,5 @@ export interface Server {
     total_memory: number;
     total_disk: number;
     is_expanded?: boolean;
+    ip_address?: string;
 }
