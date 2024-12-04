@@ -89,7 +89,7 @@ class Server:
                 UPDATE servers 
                 SET type = ?,
                     location = ?,
-                    status = 'running',
+                    status = ?,
                     uptime = ?,
                     network_in = ?,
                     network_out = ?,
@@ -100,11 +100,13 @@ class Server:
                     cpu_info = ?,
                     total_memory = ?,
                     total_disk = ?,
+                    ip_address = ?,
                     last_update = CURRENT_TIMESTAMP
                 WHERE name = ?
             ''', (
                 server_data.get('type', 'Unknown'),
                 server_data.get('location', 'UN'),
+                server_data.get('status', 'running'),
                 server_data.get('uptime', 0),
                 server_data.get('network_in', 0),
                 server_data.get('network_out', 0),
@@ -115,6 +117,7 @@ class Server:
                 server_data.get('cpu_info', 'N/A'),
                 server_data.get('total_memory', 0),
                 server_data.get('total_disk', 0),
+                server_data.get('ip_address', 'N/A'),
                 server_data['name']
             ))
             conn.commit()
@@ -194,34 +197,18 @@ class Server:
             conn.close()
 
     def check_inactive_servers(self):
-        """Check all server statuses and mark servers that haven't been updated for more than 5 seconds as stopped"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self.get_db()
         c = conn.cursor()
         try:
             current_time = datetime.now()
             
-            # Update servers that haven't been updated for more than 5 seconds and are in running status to stopped
+            # Update servers that haven't been updated for more than 5 seconds to stopped
             c.execute('''
                 UPDATE servers
                 SET status = 'stopped'
-                WHERE id IN (
-                    SELECT id FROM servers 
-                    WHERE status = 'running'
-                    AND status != 'maintenance'
-                    AND datetime(last_update) <= datetime(?, '-5 seconds')
-                )
-            ''', (current_time.isoformat(),))
-            
-            # Update servers that have been updated in the last 5 seconds and are in stopped status to running
-            c.execute('''
-                UPDATE servers
-                SET status = 'running'
-                WHERE id IN (
-                    SELECT id FROM servers 
-                    WHERE status = 'stopped'
-                    AND status != 'maintenance'
-                    AND datetime(last_update) >= datetime(?, '-5 seconds')
-                )
+                WHERE status = 'running'
+                AND status != 'maintenance'
+                AND datetime(last_update) <= datetime(?, '-5 seconds')
             ''', (current_time.isoformat(),))
             
             conn.commit()
@@ -243,7 +230,6 @@ class Server:
             conn.close()
 
     def add_allowed_client(self, client_name: str):
-        """Add or update allowed clients and create initial server records"""
         if not client_name or not client_name.strip():
             raise Exception("Client name cannot be empty")
         
@@ -251,12 +237,11 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # Add ip_address column to the servers table if it doesn't exist
-            c.execute('''
-                ALTER TABLE servers ADD COLUMN ip_address TEXT;
-            ''')
-        except Exception:  # Changed from bare except to Exception
-            pass  # Column might already exist
+            # Add ip_address column if it doesn't exist
+            try:
+                c.execute('ALTER TABLE servers ADD COLUMN ip_address TEXT')
+            except Exception:
+                pass  # Column might already exist
             
             # Delete existing client records (if any)
             c.execute('DELETE FROM allowed_clients WHERE name = ?', (client_name,))
@@ -268,36 +253,34 @@ class Server:
                 VALUES (?, CURRENT_TIMESTAMP)
             ''', (client_name,))
             
-            # Create an initial server record with friendly default values
+            # Create initial server record
             server_id = hashlib.md5(client_name.encode('utf-8')).hexdigest()
             c.execute('''
                 INSERT INTO servers 
                 (id, name, type, location, status, uptime, network_in, network_out,
-                 cpu, memory, disk, os_type, order_index, last_update, cpu_info, total_memory, total_disk)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?)
+                 cpu, memory, disk, os_type, order_index, last_update, cpu_info, 
+                 total_memory, total_disk, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
             ''', (
                 server_id,
                 client_name,
-                'VPS',                # Server type
-                'Pending',            # Location status
-                'maintenance',        # Friendly status display
-                1,                    # Uptime (1 day)
-                1024,                 # Network_in (1KB/s)
-                1024,                 # Network_out (1KB/s)
-                0,                    # CPU (5%)
-                0,                    # Memory (20%)
-                0,                    # Disk (30%)
-                'Linux',              # Operating system
-                0,                    # Order index
-                'N/A',               # CPU info
-                0,                    # Total memory
-                0,                    # Total disk
+                'VPS',
+                'Pending',
+                'maintenance',
+                1,
+                1024,
+                1024,
+                0,
+                0,
+                0,
+                'Linux',
+                0,
+                'N/A',
+                0,
+                0,
+                'N/A'
             ))
-            
             conn.commit()
-        except Exception as e:
-            conn.rollback()
-            raise Exception(f"Failed to add client: {str(e)}")
         finally:
             conn.close()
 

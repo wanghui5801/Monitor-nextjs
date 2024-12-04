@@ -17,7 +17,7 @@ SERVER_ID = None  # Will be initialized after get_machine_id()
 try:
     from config import API_URL
 except ImportError:
-    API_URL = os.getenv('API_URL', 'http://localhost:5000/api/servers/update')
+    API_URL = os.getenv('API_URL', 'http://104.36.84.214:5000/api/servers/update')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
@@ -163,7 +163,7 @@ def get_server_info():
     
     return {
         'id': SERVER_ID,
-        'name': NODE_NAME,  # Use the global NODE_NAME
+        'name': NODE_NAME,
         'type': get_server_type(),
         'location': get_location_from_ip(),
         'uptime': int(time.time() - psutil.boot_time()),
@@ -175,7 +175,8 @@ def get_server_info():
         'os_type': get_detailed_os_info(),
         'cpu_info': get_cpu_info(),
         'total_memory': psutil.virtual_memory().total / (1024 * 1024 * 1024),
-        'total_disk': total_disk
+        'total_disk': total_disk,
+        'ip_address': get_ip_address()
     }
 
 def get_server_type():
