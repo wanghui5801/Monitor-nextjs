@@ -114,6 +114,10 @@ main() {
         print_message "Failed to install frontend dependencies" "$RED"
         exit 1
     fi
+    if ! npm run build; then
+        print_message "Failed to build frontend" "$RED"
+        exit 1
+    fi
     
     # Backend setup
     cd ../backend || exit
