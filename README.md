@@ -102,8 +102,8 @@ python app.py
 
 ### Server
 - API Port: 5000
-- Frontend Port: 3000 (dev) / 80 (prod)
-- Database: SQLite3 (/opt/server-monitor/backend/monitor.db)
+- Frontend Port: 3000
+- Database: SQLite3 (/opt/server-monitor/backend/servers.db)
 
 ### Client
 - Update Interval: 2 seconds
