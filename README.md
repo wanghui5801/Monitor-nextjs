@@ -108,6 +108,88 @@ python app.py
 - Auto-restart: Enabled
 - API Endpoint: http://YOUR_SERVER_IP:5000
 
+## Service Management
+
+### Server (PM2)
+
+Monitor server status:
+
+```bash
+sudo pm2 status
+```
+
+View logs:
+
+```bash
+sudo pm2 logs                    # All logs
+sudo pm2 logs server-monitor-frontend  # Frontend logs only
+sudo pm2 logs server-monitor-backend   # Backend logs only
+```
+
+Restart services:
+
+```bash
+sudo pm2 restart all            # Restart all
+sudo pm2 restart server-monitor-frontend
+sudo pm2 restart server-monitor-backend
+```
+
+Stop services:
+
+```bash
+sudo pm2 stop all              # Stop all
+sudo pm2 stop server-monitor-frontend
+sudo pm2 stop server-monitor-backend
+```
+
+### Client Service
+
+#### Linux (Systemctl)
+
+Check status:
+
+```bash
+sudo systemctl status server-monitor-client
+```
+
+View logs:
+
+```bash
+sudo journalctl -u server-monitor-client -f
+```
+
+Manage service:
+
+```bash
+sudo systemctl start server-monitor-client
+sudo systemctl stop server-monitor-client
+sudo systemctl restart server-monitor-client
+```
+
+#### Windows (Services)
+
+Using Command Prompt (Admin):
+
+```cmd
+net start ServerMonitorClient
+net stop ServerMonitorClient
+```
+
+Or using PowerShell (Admin):
+
+```powershell
+Start-Service ServerMonitorClient
+Stop-Service ServerMonitorClient
+Restart-Service ServerMonitorClient
+Get-Service ServerMonitorClient
+```
+
+View logs at:
+```
+C:\server-monitor-client\logs\service.log
+C:\server-monitor-client\logs\error.log
+```
+
 ## Support
 
 For issues or feature requests, please open an issue on GitHub.
