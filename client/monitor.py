@@ -9,6 +9,12 @@ import subprocess
 import argparse
 from socketio import Client
 
+# Set UTF-8 encoding for Windows
+import sys
+import codecs
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+
 # Global variable definitions
 CACHED_LOCATION = None
 NODE_NAME = socket.gethostname()  # Default to hostname

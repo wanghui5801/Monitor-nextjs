@@ -71,15 +71,16 @@ if not exist "%ProgramFiles%\nssm\nssm.exe" (
 net stop ServerMonitorClient 2>nul
 "%ProgramFiles%\nssm\nssm.exe" remove ServerMonitorClient confirm 2>nul
 
-:: Create Windows service
+:: Create Windows service with UTF-8 encoding
 "%ProgramFiles%\nssm\nssm.exe" install ServerMonitorClient "C:\server-monitor-client\venv\Scripts\python.exe"
-"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppParameters "C:\server-monitor-client\monitor.py --name %NODE_NAME%"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppParameters "-X utf8 C:\server-monitor-client\monitor.py --name %NODE_NAME%"
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppDirectory "C:\server-monitor-client"
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient DisplayName "Server Monitor Client"
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient Description "Server monitoring client service"
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient Start SERVICE_AUTO_START
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppStdout "C:\server-monitor-client\logs\service.log"
 "%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppStderr "C:\server-monitor-client\logs\error.log"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppEnvironmentExtra "PYTHONIOENCODING=utf-8"
 
 :: Start service
 net start ServerMonitorClient
