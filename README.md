@@ -56,6 +56,58 @@ Run PowerShell as Administrator:
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; .\install_client.bat
 ```
 
+## Domain Setup (Optional)
+
+To configure a custom domain with SSL:
+
+1. Ensure you have a domain pointed to your server's IP address
+2. Run the domain setup script:
+
+```bash
+wget -O setup_domain.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/setup_domain.sh && chmod +x setup_domain.sh && sudo ./setup_domain.sh
+```
+
+This script will:
+- Install and configure Nginx
+- Obtain SSL certificate via Let's Encrypt
+- Set up reverse proxy for both frontend and API
+- Update application configuration
+- Restart all services
+
+After setup, your monitor will be accessible at:
+- Dashboard: `https://YOUR_DOMAIN`
+- API: `https://YOUR_DOMAIN/api`
+
+### Updating Existing Clients
+
+If you have existing clients, update their API endpoint:
+
+1. Edit the client configuration:
+
+```bash
+sudo nano /opt/server-monitor-client/monitor.py
+```
+
+2. Update the API_URL:
+
+```python
+API_URL = 'https://YOUR_DOMAIN/api'
+```
+
+3. Restart the client service:
+
+For Linux:
+
+```bash
+sudo systemctl restart server-monitor-client
+```
+
+For Windows:
+
+```powershell
+Restart-Service ServerMonitorClient
+```
+
 ## System Requirements
 
 ### Server
