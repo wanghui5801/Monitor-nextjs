@@ -46,13 +46,13 @@ python -m venv venv
 call venv\Scripts\activate
 
 :: Install dependencies
-pip install psutil requests python-socketio
+pip install psutil requests "python-socketio[client]" wmi
 
 :: Download monitor.py from repository
 powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/client/monitor.py' -OutFile 'monitor.py' }"
 
 :: Configure API URL in monitor.py
-powershell -Command "& { (Get-Content monitor.py) -replace 'API_URL = .*', 'API_URL = ''http://%SERVER_IP%:5000''' | Set-Content monitor.py }"
+powershell -Command "& { (Get-Content monitor.py) -replace 'API_URL = .*', 'API_URL = ''http://%SERVER_IP%:5000''' | Set-Content monitor.py -Encoding UTF8 }"
 
 :: Create logs directory
 mkdir logs 2>nul
@@ -62,10 +62,14 @@ if not exist "%ProgramFiles%\nssm\nssm.exe" (
     echo %YELLOW%Installing NSSM...%NC%
     powershell -Command "& { Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile 'nssm.zip' }"
     powershell -Command "& { Expand-Archive -Path 'nssm.zip' -DestinationPath '.' }"
-    xcopy "nssm-2.24\win64\nssm.exe" "%ProgramFiles%\nssm\" /Y
+    xcopy "nssm-2.24\win64\nssm.exe" "%ProgramFiles%\nssm\" /Y /I
     rd /s /q "nssm-2.24"
     del nssm.zip
 )
+
+:: Stop existing service if running
+net stop ServerMonitorClient 2>nul
+"%ProgramFiles%\nssm\nssm.exe" remove ServerMonitorClient confirm 2>nul
 
 :: Create Windows service
 "%ProgramFiles%\nssm\nssm.exe" install ServerMonitorClient "C:\server-monitor-client\venv\Scripts\python.exe"
@@ -81,4 +85,6 @@ if not exist "%ProgramFiles%\nssm\nssm.exe" (
 net start ServerMonitorClient
 
 echo %GREEN%Installation completed successfully!%NC%
+echo %GREEN%Check logs at C:\server-monitor-client\logs for any issues%NC%
+pause
 exit /b 0
