@@ -13,8 +13,9 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import AdminStats from '../../components/admin/AdminStats';
 import ResetPasswordModal from '../../components/admin/ResetPasswordModal';
 import { useAuth } from '../../hooks/useAuth';
-import { Toaster } from 'react-hot-toast';
 import { API_URL } from '../../config/config';
+import { Toaster } from 'react-hot-toast';
+import { fetchWithAuth } from '../../utils/api';
 
 export default function AdminDashboard() {
   const { logout } = useAuth();
@@ -27,7 +28,7 @@ export default function AdminDashboard() {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/servers`);
+      const response = await fetchWithAuth('/api/servers');
       if (!response.ok) {
         throw new Error('Failed to fetch clients');
       }
@@ -52,18 +53,12 @@ export default function AdminDashboard() {
     try {
       setError(null);
       setLoading(true);
-      
-      const response = await fetch(`${API_URL}/api/servers/${clientId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await fetchWithAuth(`/api/servers/${clientId}`, {
+        method: 'DELETE'
       });
-
       if (!response.ok) {
         throw new Error('Failed to delete server');
       }
-      
       await fetchClients();
     } catch (error) {
       console.error('Error deleting server:', error);
