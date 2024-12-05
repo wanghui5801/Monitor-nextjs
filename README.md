@@ -7,6 +7,8 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0+-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-orange.svg)](https://github.com/wanghui5801/Monitor-nextjs)
 
+![Homepage Screenshot](Figures/homepage.png)
+
 A user-friendly, real-time monitoring system for distributed servers with an intuitive dashboard interface.
 
 ## Key Features
