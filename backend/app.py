@@ -147,7 +147,9 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25,
     logger=False,
-    engineio_logger=False
+    engineio_logger=False,
+    max_http_buffer_size=1000000,
+    manage_session=False
 )
 
 # 存储客户端最后更新时间

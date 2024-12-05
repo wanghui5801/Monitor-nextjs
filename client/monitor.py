@@ -310,7 +310,15 @@ def update_server_with_retry(server_info, max_retries=3, retry_delay=1):
     
     return False
 
-sio = Client()
+sio = Client(
+    reconnection=True,
+    reconnection_attempts=5,
+    reconnection_delay=1,
+    reconnection_delay_max=5,
+    randomization_factor=0.5,
+    logger=False,
+    engineio_logger=False
+)
 RETRY_INTERVAL = 5
 MAX_RETRIES = 3
 
@@ -324,25 +332,27 @@ def disconnect():
 
 def get_system_info_buffer():
     """缓冲系统信息，减少 I/O 操作"""
-    global _last_network_io
-    global _last_disk_io
-    
     current_time = time.time()
     if not hasattr(get_system_info_buffer, '_last_full_update'):
         get_system_info_buffer._last_full_update = 0
         get_system_info_buffer._cached_info = None
     
-    # 每5秒进行一次完整更新
-    if current_time - get_system_info_buffer._last_full_update >= 5:
-        get_system_info_buffer._cached_info = get_server_info()
+    # 每10秒进行一次完整更新
+    if current_time - get_system_info_buffer._last_full_update >= 10:
+        system_info = get_server_info()
+        # Round all float values to 2 decimal places
+        for key, value in system_info.items():
+            if isinstance(value, float):
+                system_info[key] = round(value, 2)
+        get_system_info_buffer._cached_info = system_info
         get_system_info_buffer._last_full_update = current_time
         return get_system_info_buffer._cached_info
     
     # 只更新频繁变化的指标
     cached_info = get_system_info_buffer._cached_info.copy()
     cached_info.update({
-        'cpu': psutil.cpu_percent(),
-        'memory': psutil.virtual_memory().percent,
+        'cpu': round(psutil.cpu_percent(), 2),
+        'memory': round(psutil.virtual_memory().percent, 2),
         'uptime': int(time.time() - psutil.boot_time())
     })
     return cached_info
@@ -360,18 +370,32 @@ def main():
     print(f"Node name: {NODE_NAME}")
     print(f"Sending data to: {API_URL}")
     
+    retry_count = 0
+    
     while True:
         try:
             if not sio.connected:
                 sio.connect(API_URL)
+                retry_count = 0
             
             system_info = get_system_info_buffer()
+            # Convert all values to strings to prevent serialization issues
+            for key in system_info:
+                if isinstance(system_info[key], (float, int)):
+                    system_info[key] = str(system_info[key])
+            
             sio.emit('server_update', system_info)
-            time.sleep(1)  # 更新间隔改为1秒
+            time.sleep(3)  # Increase interval to 3 seconds
             
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(RETRY_INTERVAL)
+            retry_count += 1
+            if retry_count > MAX_RETRIES:
+                print("Max retries reached, waiting longer...")
+                time.sleep(RETRY_INTERVAL * 2)
+                retry_count = 0
+            else:
+                time.sleep(RETRY_INTERVAL)
 
 if __name__ == "__main__":
     try:
