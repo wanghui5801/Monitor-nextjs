@@ -19,6 +19,7 @@ A user-friendly, real-time monitoring system for distributed servers with an int
 - Disk space monitoring
 - Automatic location detection
 - Network traffic monitoring
+- IP address protection (IPs are hidden for non-authenticated users)
 
 🌟 Additional Features:
 - Multi-server management
@@ -26,6 +27,15 @@ A user-friendly, real-time monitoring system for distributed servers with an int
 - Cross-platform (Windows/Linux)
 - Dark/Light mode
 - One-click installation
+- Secure admin interface
+
+## Security Features
+
+### IP Address Protection
+- Public view: IP addresses are masked (displayed as ***.***.***.**)
+- Admin view: Full IP addresses visible after authentication
+- Secure JWT-based authentication
+- Protected API endpoints
 
 ## Quick Installation Guide
 
