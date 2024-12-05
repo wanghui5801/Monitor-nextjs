@@ -11,6 +11,8 @@ import jwt
 import sqlite3
 import os
 from flask_socketio import SocketIO, emit
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -41,10 +43,10 @@ servers = {}  # Use dictionary to store server information, key is server_id
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-# Add scheduled task, check server status every 5 seconds
+# Add scheduled task, check server status every 10 seconds
 scheduler.add_job(
     func=server_model.check_inactive_servers,
-    trigger=IntervalTrigger(seconds=5),
+    trigger=IntervalTrigger(seconds=10),
     id='check_server_status',
     name='Check server status',
     replace_existing=True
@@ -138,7 +140,15 @@ def reset_password():
     success = server_model.set_admin_password(new_password)
     return jsonify({'success': success})
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', ping_timeout=60)
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    ping_timeout=60,
+    ping_interval=25,
+    logger=False,
+    engineio_logger=False
+)
 
 # 存储客户端最后更新时间
 client_last_update = {}
@@ -186,5 +196,26 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(check_inactive_clients, 'interval', seconds=10)  # 检查间隔改为10秒
 scheduler.start()
 
+# 配置日志
+logging.basicConfig(
+    handlers=[RotatingFileHandler(
+        'server-monitor.log', 
+        maxBytes=10000000, 
+        backupCount=5
+    )],
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    try:
+        print("Starting server in production mode...")
+        socketio.run(
+            app,
+            host='0.0.0.0',
+            port=5000,
+            debug=False,
+            use_reloader=False
+        )
+    except Exception as e:
+        print(f"Error starting server: {e}")

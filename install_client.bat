@@ -1,132 +1,86 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Color definitions for Windows
-set "RED=[91m"
-set "GREEN=[92m"
-set "YELLOW=[93m"
+:: Colors
+set "GREEN=[32m"
+set "YELLOW=[33m"
+set "RED=[31m"
 set "NC=[0m"
 
-:: Function to print colored messages
+:: Check parameters
+if "%~1"=="" (
+    :: Interactive mode
+    call :print_message "Enter server IP: " "YELLOW"
+    set /p "SERVER_IP="
+    call :print_message "Enter node name: " "YELLOW"
+    set /p "NODE_NAME="
+) else if "%~2"=="" (
+    call :print_message "Usage: %~nx0 [node_name server_ip]" "RED"
+    pause
+    exit /b 1
+) else (
+    :: Direct parameters mode (from admin panel)
+    set "NODE_NAME=%~1"
+    set "SERVER_IP=%~2"
+)
+
 call :print_message "Starting installation..." "GREEN"
+call :print_message "Node name: %NODE_NAME%" "GREEN"
+call :print_message "Server IP: %SERVER_IP%" "GREEN"
 
-:: Request administrator privileges
-NET SESSION >nul 2>&1
+:: Check Python installation
+python --version >nul 2>&1
 if %errorLevel% neq 0 (
-    call :print_message "Please run as administrator" "RED"
+    call :print_message "Python not found. Please install Python first." "RED"
+    start https://www.python.org/downloads/
     pause
     exit /b 1
-)
-
-:: Get server IP from environment variable or prompt
-if "%SERVER_IP%"=="" (
-    set /p SERVER_IP=Enter server IP address: 
-    if "!SERVER_IP!"=="" (
-        call :print_message "Server IP address is required" "RED"
-        pause
-        exit /b 1
-    )
-)
-
-:: Get node name
-set NODE_NAME=%1
-if "%NODE_NAME%"=="" (
-    set /p NODE_NAME=Enter node name (press Enter to use hostname): 
-    if "!NODE_NAME!"=="" set NODE_NAME=%COMPUTERNAME%
-)
-
-:: Check Python version
-for /f "tokens=2 delims=." %%I in ('python -c "import sys; print(sys.version.split()[0])"') do (
-    if %%I LSS 8 (
-        call :print_message "Python 3.8+ is required" "RED"
-        pause
-        exit /b 1
-    )
-)
-
-:: Check Git installation
-git --version >nul 2>&1
-if %errorLevel% neq 0 (
-    call :print_message "Git not found. Please install Git first." "RED"
-    start https://git-scm.com/download/win
-    pause
-    exit /b 1
-)
-
-:: Backup existing installation
-if exist "C:\server-monitor-client" (
-    set "backup_dir=C:\server-monitor-client.backup.%date:~-4,4%%date:~-10,2%%date:~-7,2%"
-    call :print_message "Backing up existing installation to !backup_dir!" "YELLOW"
-    move "C:\server-monitor-client" "!backup_dir!"
 )
 
 :: Create installation directory
-mkdir C:\server-monitor-client
+mkdir C:\server-monitor-client 2>nul
 cd /d C:\server-monitor-client
-
-:: Clone project
-call :print_message "Cloning repository..." "GREEN"
-git clone https://github.com/wanghui5801/Monitor-nextjs.git .
-if %errorLevel% neq 0 (
-    call :print_message "Failed to clone repository" "RED"
-    pause
-    exit /b 1
-)
 
 :: Create virtual environment
 python -m venv venv
 call venv\Scripts\activate
-if %errorLevel% neq 0 (
-    call :print_message "Failed to create virtual environment" "RED"
-    pause
-    exit /b 1
-)
 
 :: Install dependencies
-cd client
-pip install -r requirements.txt psutil requests wmi
-if %errorLevel% neq 0 (
-    call :print_message "Failed to install Python dependencies" "RED"
-    pause
-    exit /b 1
-)
+pip install psutil requests python-socketio
 
-:: Create config file
-echo API_URL = "http://%SERVER_IP%:5000/api/servers/update" > config.py
-echo NODE_NAME = "%NODE_NAME%" >> config.py
+:: Download monitor.py from repository
+powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/client/monitor.py' -OutFile 'monitor.py' }"
 
-:: Download and install NSSM
-if not exist "C:\Windows\System32\nssm.exe" (
-    call :print_message "Installing NSSM..." "GREEN"
-    curl -L -o nssm.zip https://nssm.cc/release/nssm-2.24.zip
-    powershell -command "Expand-Archive -Path nssm.zip -DestinationPath C:\nssm-temp"
-    move /y "C:\nssm-temp\nssm-2.24\win64\nssm.exe" "C:\Windows\System32\"
-    rd /s /q "C:\nssm-temp"
+:: Configure API URL in monitor.py
+powershell -Command "& { (Get-Content monitor.py) -replace 'API_URL = .*', 'API_URL = ''http://%SERVER_IP%:5000''' | Set-Content monitor.py }"
+
+:: Create logs directory
+mkdir logs 2>nul
+
+:: Install NSSM if not present
+if not exist "%ProgramFiles%\nssm\nssm.exe" (
+    call :print_message "Installing NSSM..." "YELLOW"
+    powershell -Command "& { Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile 'nssm.zip' }"
+    powershell -Command "& { Expand-Archive -Path 'nssm.zip' -DestinationPath '.' }"
+    xcopy "nssm-2.24\win64\nssm.exe" "%ProgramFiles%\nssm\" /Y
+    rd /s /q "nssm-2.24"
     del nssm.zip
 )
 
-:: Create and configure Windows service
-call :print_message "Creating Windows service..." "GREEN"
-nssm install ServerMonitorClient "%~dp0venv\Scripts\python.exe" "%~dp0client\monitor.py --name %NODE_NAME%"
-nssm set ServerMonitorClient AppDirectory "%~dp0client"
-nssm set ServerMonitorClient DisplayName "Server Monitor Client"
-nssm set ServerMonitorClient Description "Server monitoring client service"
-nssm set ServerMonitorClient AppStdout "%~dp0client\service.log"
-nssm set ServerMonitorClient AppStderr "%~dp0client\error.log"
-nssm set ServerMonitorClient Start SERVICE_AUTO_START
+:: Create Windows service
+"%ProgramFiles%\nssm\nssm.exe" install ServerMonitorClient "C:\server-monitor-client\venv\Scripts\python.exe"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppParameters "C:\server-monitor-client\monitor.py --name %NODE_NAME%"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppDirectory "C:\server-monitor-client"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient DisplayName "Server Monitor Client"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient Description "Server monitoring client service"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient Start SERVICE_AUTO_START
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppStdout "C:\server-monitor-client\logs\service.log"
+"%ProgramFiles%\nssm\nssm.exe" set ServerMonitorClient AppStderr "C:\server-monitor-client\logs\error.log"
 
 :: Start service
-call :print_message "Starting service..." "GREEN"
 net start ServerMonitorClient
-if %errorLevel% neq 0 (
-    call :print_message "Failed to start service. Check logs in client\error.log" "RED"
-    pause
-    exit /b 1
-)
 
 call :print_message "Installation completed successfully!" "GREEN"
-call :print_message "Service is running with node name: %NODE_NAME%" "GREEN"
-pause
 exit /b 0
 
 :print_message

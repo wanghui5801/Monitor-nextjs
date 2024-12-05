@@ -24,5 +24,5 @@ SERVER_IP = os.getenv('SERVER_IP', get_server_ip())
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
     DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'servers.db')
-    DEBUG = True
+    DEBUG = False
     CORS_HEADERS = 'Content-Type'
