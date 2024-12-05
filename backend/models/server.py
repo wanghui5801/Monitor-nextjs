@@ -4,6 +4,8 @@ from typing import Dict, List
 import bcrypt
 import hashlib
 import os
+import jwt
+from config import Config
 
 class Server:
     def __init__(self, db_path: str):
@@ -416,3 +418,11 @@ class Server:
             return bool(c.fetchone())
         finally:
             conn.close()
+
+    def verify_token(self, token: str) -> bool:
+        """验证JWT token"""
+        try:
+            jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
+            return True
+        except:
+            return False

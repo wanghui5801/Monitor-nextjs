@@ -99,18 +99,31 @@ def get_servers():
             SELECT id, name, type, location, status, uptime, 
                    network_in, network_out, cpu, memory, disk, 
                    os_type, cpu_info, total_memory, total_disk, 
-                   ip_address, order_index  -- Ensure ip_address is included
+                   ip_address, order_index
             FROM servers 
             ORDER BY order_index DESC
         ''')
         servers = c.fetchall()
         columns = [description[0] for description in c.description]
         
+        # 检查是否有认证token
+        auth_header = request.headers.get('Authorization')
+        is_authenticated = False
+        if auth_header:
+            try:
+                token = auth_header.split(' ')[1]
+                if server_model.verify_token(token):
+                    is_authenticated = True
+            except:
+                pass
+        
         # Convert to list of dictionaries
         result = []
         for server in servers:
             server_dict = dict(zip(columns, server))
-            print(f"Server data: {server_dict}")  # Add debugging log
+            # 对未认证的请求隐藏IP地址
+            if not is_authenticated:
+                server_dict['ip_address'] = '***.***.***.**'
             result.append(server_dict)
             
         return jsonify(result)
