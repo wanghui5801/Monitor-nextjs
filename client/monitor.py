@@ -259,10 +259,10 @@ def get_server_type():
                     return "VPS"
                     
             # Method 3: Check CPU info for virtualization flags
-            with open('/proc/cpuinfo') as f:
-                cpu_info = f.read().lower()
-                if any(flag in cpu_info for flag in ['vmx', 'svm', 'hypervisor']):
-                    return "VPS"
+            # with open('/proc/cpuinfo') as f:
+            #     cpu_info = f.read().lower()
+            #     if any(flag in cpu_info for flag in ['vmx', 'svm', 'hypervisor']):
+            #         return "VPS"
                     
             # Method 4: Check dmesg for virtualization hints
             try:
