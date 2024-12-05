@@ -8,7 +8,7 @@ NC='\033[0m'
 
 # Print colored message
 print_message() {
-    echo -e "${!2}$1${NC}"
+    echo -e "${2}${1}${NC}"
 }
 
 # Check Python version

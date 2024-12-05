@@ -10,12 +10,12 @@ set "NC=[0m"
 :: Check parameters
 if "%~1"=="" (
     :: Interactive mode
-    call :print_message "Enter server IP: " "YELLOW"
+    echo %YELLOW%Enter server IP: %NC%
     set /p "SERVER_IP="
-    call :print_message "Enter node name: " "YELLOW"
+    echo %YELLOW%Enter node name: %NC%
     set /p "NODE_NAME="
 ) else if "%~2"=="" (
-    call :print_message "Usage: %~nx0 [node_name server_ip]" "RED"
+    echo %RED%Usage: %~nx0 [node_name server_ip]%NC%
     pause
     exit /b 1
 ) else (
@@ -24,14 +24,14 @@ if "%~1"=="" (
     set "SERVER_IP=%~2"
 )
 
-call :print_message "Starting installation..." "GREEN"
-call :print_message "Node name: %NODE_NAME%" "GREEN"
-call :print_message "Server IP: %SERVER_IP%" "GREEN"
+echo %GREEN%Starting installation...%NC%
+echo %GREEN%Node name: %NODE_NAME%%NC%
+echo %GREEN%Server IP: %SERVER_IP%%NC%
 
 :: Check Python installation
 python --version >nul 2>&1
 if %errorLevel% neq 0 (
-    call :print_message "Python not found. Please install Python first." "RED"
+    echo %RED%Python not found. Please install Python first.%NC%
     start https://www.python.org/downloads/
     pause
     exit /b 1
@@ -59,7 +59,7 @@ mkdir logs 2>nul
 
 :: Install NSSM if not present
 if not exist "%ProgramFiles%\nssm\nssm.exe" (
-    call :print_message "Installing NSSM..." "YELLOW"
+    echo %YELLOW%Installing NSSM...%NC%
     powershell -Command "& { Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile 'nssm.zip' }"
     powershell -Command "& { Expand-Archive -Path 'nssm.zip' -DestinationPath '.' }"
     xcopy "nssm-2.24\win64\nssm.exe" "%ProgramFiles%\nssm\" /Y
@@ -80,9 +80,5 @@ if not exist "%ProgramFiles%\nssm\nssm.exe" (
 :: Start service
 net start ServerMonitorClient
 
-call :print_message "Installation completed successfully!" "GREEN"
-exit /b 0
-
-:print_message
-echo %~2%~1%NC%
+echo %GREEN%Installation completed successfully!%NC%
 exit /b 0
