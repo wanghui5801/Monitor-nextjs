@@ -1,69 +1,84 @@
 # Server Monitor
 
-A distributed server monitoring system that provides real-time metrics and status information for multiple servers.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0+-black.svg)](https://nextjs.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0+-lightgrey.svg)](https://flask.palletsprojects.com/)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-orange.svg)](https://github.com/wanghui5801/Monitor-nextjs)
 
-## Features
+A user-friendly, real-time monitoring system for distributed servers with an intuitive dashboard interface.
 
-- Real-time monitoring of system metrics:
-  - CPU usage and model information
-  - Memory usage
-  - Disk usage and capacity
-  - Server location auto-detection
+## Key Features
+
+✨ Real-time System Metrics:
+- CPU usage & model information
+- Memory utilization
+- Disk space monitoring
+- Automatic location detection
+- Network traffic monitoring
+
+🌟 Additional Features:
 - Multi-server management
-- Automatic server status detection
-- Cross-platform support (Windows/Linux)
-- Dark mode support
-- Easy installation with automated scripts
+- Automatic status detection
+- Cross-platform (Windows/Linux)
+- Dark/Light mode
+- One-click installation
 
-## Quick Start
+## Quick Installation Guide
 
-### Server Installation (Linux Only)
+### 1. Server Setup (Linux Only)
 
-Supported distributions: Ubuntu, Debian, CentOS, RHEL, Fedora
+Run this command on your Linux server:
 
 ```bash
-wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_server.sh
-chmod +x install.sh
-sudo ./install.sh
+wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_server.sh && chmod +x install.sh && sudo ./install.sh
 ```
 
-For Windows (Run PowerShell as Administrator):
+After installation, access:
+- Dashboard: `http://YOUR_SERVER_IP`
+- API: `http://YOUR_SERVER_IP:5000`
+
+### 2. Client Installation
+
+#### For Linux:
+
+```bash
+wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.sh && chmod +x install.sh && sudo ./install.sh
+```
+
+#### For Windows:
+Run PowerShell as Administrator:
 
 ```powershell
-powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; Start-Process -FilePath 'install_client.bat' -ArgumentList 'YOUR_SERVER_NAME' -Verb RunAs }"
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; .\install_client.bat
 ```
-
-#### Method 2: Manual Installation
-
-Supported distributions: Ubuntu, Debian, CentOS, RHEL, Fedora
 
 ## System Requirements
 
 ### Server
-- Operating System: Ubuntu/Debian/CentOS/RHEL/Fedora
+- OS: Ubuntu/Debian/CentOS/RHEL/Fedora
 - Python 3.8+
 - Node.js 18+
-- Nginx
 - 1GB RAM minimum
 - 10GB free disk space
 
 ### Client
-- Operating System: Windows/Linux
+- OS: Windows/Linux
 - Python 3.8+
 - 100MB free disk space
-- For Windows: Administrator privileges
-- For Linux: Root privileges
+- Admin/Root privileges
 
 ## Development Setup
 
-1. Clone the repository
+1. Clone and prepare:
 
 ```bash
 git clone https://github.com/wanghui5801/Monitor-nextjs.git
 cd Monitor-nextjs
 ```
 
-2. Frontend setup
+2. Setup Frontend:
 
 ```bash
 cd frontend
@@ -71,66 +86,32 @@ npm install
 npm run dev
 ```
 
-3. Backend setup
+3. Setup Backend:
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+source venv/bin/activate  # Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
-```
-
-4. Client setup
-
-```bash
-cd client
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
-python monitor.py --name "TEST_SERVER"
 ```
 
 ## Configuration
 
 ### Server
-- Backend API port: 5000
-- Frontend port: 3000 (development) / 80 (production)
-- Database: SQLite3 (located at /opt/server-monitor/backend/monitor.db)
+- API Port: 5000
+- Frontend Port: 3000 (dev) / 80 (prod)
+- Database: SQLite3 (/opt/server-monitor/backend/monitor.db)
 
 ### Client
-- Update interval: 2 seconds
-- Auto-restart on failure: Yes
-- Default API endpoint: http://YOUR_SERVER_IP:5000/api/servers/update
+- Update Interval: 2 seconds
+- Auto-restart: Enabled
+- API Endpoint: http://YOUR_SERVER_IP:5000
+
+## Support
+
+For issues or feature requests, please open an issue on GitHub.
 
 ## License
 
 MIT License - see LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-After installation, access:
-- Dashboard: `http://YOUR_SERVER_IP`
-- API: `http://YOUR_SERVER_IP/api`
-
-### Client Installation
-
-#### Method 1: One-Click Installation (Recommended)
-
-For Linux:
-
-```bash
-wget -O install.sh https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.sh && chmod +x install.sh && sudo ./install.sh "YOUR_SERVER_NAME"
-```
-
-For Windows (Run PowerShell as Administrator):
-
-```powershell
-powershell -Command "& { Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/install_client.bat' -OutFile 'install_client.bat'; Start-Process -FilePath 'install_client.bat' -ArgumentList 'YOUR_SERVER_NAME' -Verb RunAs }"
-```
-
-#### Method 2: Manual Installation
-
-[Rest of the installation instructions remain the same...]

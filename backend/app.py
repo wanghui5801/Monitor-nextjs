@@ -152,7 +152,7 @@ socketio = SocketIO(
     manage_session=False
 )
 
-# 存储客户端最后更新时间
+# Store client last update time
 client_last_update = {}
 
 @socketio.on('connect')
@@ -169,22 +169,22 @@ def handle_server_update(data):
         if not data or 'id' not in data or 'name' not in data:
             return
         
-        # 更新最后活动时间
+        # Update last activity time
         client_last_update[data['id']] = datetime.now()
         
-        # 更新服务器状态
-        data['status'] = 'running'  # 确保状态为running
+        # Update server status
+        data['status'] = 'running'  # Ensure status is running
         server_model.update_server(data)
         
-        # 广播更新给所有客户端
+        # Broadcast update to all clients
         emit('server_status_update', data, broadcast=True)
     except Exception as e:
         print(f"Error handling server update: {e}")
 
 def check_inactive_clients():
-    """检查不活跃的客户端"""
+    """Check inactive clients"""
     current_time = datetime.now()
-    threshold = current_time - timedelta(seconds=20)  # 延长到20秒
+    threshold = current_time - timedelta(seconds=20)  # Extend to 20 seconds
     
     for client_id, last_update in client_last_update.items():
         if last_update < threshold:
@@ -193,12 +193,12 @@ def check_inactive_clients():
                 'status': 'stopped'
             })
 
-# 启动定时任务
+# Start scheduled tasks
 scheduler = BackgroundScheduler()
-scheduler.add_job(check_inactive_clients, 'interval', seconds=10)  # 检查间隔改为10秒
+scheduler.add_job(check_inactive_clients, 'interval', seconds=10)  # Change check interval to 10 seconds
 scheduler.start()
 
-# 配置日志
+# Configure logging
 logging.basicConfig(
     handlers=[RotatingFileHandler(
         'server-monitor.log', 

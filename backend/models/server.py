@@ -90,12 +90,12 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 检查当前服务器状态
+            # Check current server status
             c.execute('SELECT status FROM servers WHERE name = ?', (server_data['name'],))
             current = c.fetchone()
             
-            # 如果收到数据更新，状态应该设置为running
-            # 除非当前状态是maintenance且是首次连接
+            # If data update is received, status should be set to running
+            # Unless the current status is maintenance and it's the first connection
             if current and current[0] == 'maintenance':
                 first_update = True
                 c.execute('SELECT last_update FROM servers WHERE name = ?', (server_data['name'],))
@@ -108,7 +108,7 @@ class Server:
             else:
                 server_data['status'] = 'running'
             
-            # 更新服务器记录
+            # Update server record
             c.execute('''
                 UPDATE servers 
                 SET type = ?,
@@ -202,13 +202,13 @@ class Server:
             conn.close()
 
     def check_server_status(self):
-        """统一的服务器状态检查方法"""
+        """Unified server status check method"""
         conn = self.get_db()
         c = conn.cursor()
         try:
             current_time = datetime.now()
             
-            # 更新超过20秒未收到数据的运行中服务器状态为stopped
+            # Update status to stopped for running servers with no data for over 20 seconds
             c.execute('''
                 UPDATE servers
                 SET status = 'stopped'
@@ -236,7 +236,7 @@ class Server:
             try:
                 current_time = datetime.now()
                 
-                # 只更新 running 状态的服务器
+                # Only update servers with running status
                 c.execute('''
                     UPDATE servers
                     SET status = 'stopped'
@@ -250,7 +250,7 @@ class Server:
                 
                 conn.commit()
                 
-                # 记录状态变更
+                # Log status changes
                 changed_rows = c.rowcount
                 if changed_rows > 0:
                     print(f"Marked {changed_rows} servers as stopped due to inactivity")

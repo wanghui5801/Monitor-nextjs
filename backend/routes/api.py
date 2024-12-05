@@ -72,10 +72,10 @@ def update_server():
                 if current_status in ['maintenance', 'stopped']:
                     data['status'] = 'running'
                 elif current_status == 'running':
-                    data['status'] = 'running'  # 保持运行状态
+                    data['status'] = 'running'  # Maintain running status
                 data['order_index'] = order_index
             else:
-                # 新服务器首次连接
+                # New server first connection
                 data['status'] = 'running'
                 c.execute('SELECT COALESCE(MAX(order_index), 0) FROM servers')
                 data['order_index'] = c.fetchone()[0] - 1
@@ -99,18 +99,18 @@ def get_servers():
             SELECT id, name, type, location, status, uptime, 
                    network_in, network_out, cpu, memory, disk, 
                    os_type, cpu_info, total_memory, total_disk, 
-                   ip_address, order_index  -- 确保包含 ip_address
+                   ip_address, order_index  -- Ensure ip_address is included
             FROM servers 
             ORDER BY order_index DESC
         ''')
         servers = c.fetchall()
         columns = [description[0] for description in c.description]
         
-        # 转换为字典列表
+        # Convert to list of dictionaries
         result = []
         for server in servers:
             server_dict = dict(zip(columns, server))
-            print(f"Server data: {server_dict}")  # 添加调试日志
+            print(f"Server data: {server_dict}")  # Add debugging log
             result.append(server_dict)
             
         return jsonify(result)

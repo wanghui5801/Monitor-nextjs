@@ -331,13 +331,13 @@ def disconnect():
     print('Disconnected from server')
 
 def get_system_info_buffer():
-    """缓冲系统信息，减少 I/O 操作"""
+    """Buffer system information to reduce I/O operations"""
     current_time = time.time()
     if not hasattr(get_system_info_buffer, '_last_full_update'):
         get_system_info_buffer._last_full_update = 0
         get_system_info_buffer._cached_info = None
     
-    # 每10秒进行一次完整更新
+    # Perform a full update every 10 seconds
     if current_time - get_system_info_buffer._last_full_update >= 10:
         system_info = get_server_info()
         # Round all float values to 2 decimal places
@@ -348,7 +348,7 @@ def get_system_info_buffer():
         get_system_info_buffer._last_full_update = current_time
         return get_system_info_buffer._cached_info
     
-    # 只更新频繁变化的指标
+    # Only update frequently changing metrics
     cached_info = get_system_info_buffer._cached_info.copy()
     cached_info.update({
         'cpu': round(psutil.cpu_percent(), 2),
