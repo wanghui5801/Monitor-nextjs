@@ -19,7 +19,7 @@ body.dark {
     shadow-sm transition-all duration-200 hover:shadow backdrop-blur-sm;
   }
 
-  .status-badge-running {
+  /* .status-badge-running {
     @apply bg-emerald-50/90 dark:bg-emerald-900/30 
     text-emerald-700 dark:text-emerald-300
     ring-1 ring-emerald-200/50 dark:ring-emerald-800/50
@@ -36,7 +36,7 @@ body.dark {
     @apply bg-amber-50 dark:bg-amber-900/30 
     text-amber-700 dark:text-amber-300
     ring-1 ring-amber-200/50 dark:ring-amber-800/50;
-  }
+  } */
 
   .progress-bar-container {
     @apply bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden;

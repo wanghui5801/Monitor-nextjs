@@ -78,13 +78,13 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, onToggleExpand }) => {
         const status = server.status || 'running';
         switch (status) {
             case 'running':
-                return 'status-badge-running';
+                return 'bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/50 dark:ring-emerald-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/40';
             case 'stopped':
-                return 'status-badge-stopped';
+                return 'bg-red-50/90 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200/50 dark:ring-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/40';
             case 'maintenance':
-                return 'status-badge-maintenance';
+                return 'bg-amber-50/90 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200/50 dark:ring-amber-800/50 hover:bg-amber-50 dark:hover:bg-amber-900/40';
             default:
-                return 'status-badge-running';
+                return 'bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/50 dark:ring-emerald-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/40';
         }
     };
 
