@@ -36,8 +36,8 @@ main() {
         read -p "Enter node name: " NODE_NAME
     elif [ $# -eq 2 ]; then
         # Direct parameters mode (from admin panel)
-        NODE_NAME="$1"
-        SERVER_IP="$2"
+        NODE_NAME="${1//\"/}"  # Remove any quotes
+        SERVER_IP="${2//\"/}"  # Remove any quotes
     else
         print_message "Usage: $0 [node_name server_ip]" "$RED"
         exit 1

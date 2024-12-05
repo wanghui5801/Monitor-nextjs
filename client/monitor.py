@@ -22,8 +22,9 @@ except ImportError:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Server Monitor Client')
-    parser.add_argument('--name', type=str, help='Custom node name')
-    return parser.parse_args()
+    parser.add_argument('--name', type=str, help='Custom node name', default=socket.gethostname())
+    args = parser.parse_args()
+    return args.name.strip('"\'')  # Remove any quotes from the name
 
 def get_location_from_ip():
     global CACHED_LOCATION
@@ -360,9 +361,7 @@ def get_system_info_buffer():
 def main():
     global NODE_NAME, SERVER_ID
     
-    args = parse_arguments()
-    if args.name:
-        NODE_NAME = args.name
+    NODE_NAME = parse_arguments()
     
     SERVER_ID = get_machine_id()
     
