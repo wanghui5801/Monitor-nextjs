@@ -18,7 +18,7 @@ const MobileServerCard: React.FC<MobileServerCardProps> = ({ server, onToggleExp
     return `${days} days`;
   };
 
-  const getStatusColor = () => {
+  const getStatusClass = () => {
     const status = server.status || 'running';
     switch (status) {
       case 'running':
@@ -68,7 +68,7 @@ const MobileServerCard: React.FC<MobileServerCardProps> = ({ server, onToggleExp
     >
       {/* First Row */}
       <div className="flex items-center justify-between">
-        <span className={`status-badge ${getStatusColor()}`}>
+        <span className={`status-badge ${getStatusClass()}`}>
           {(server.status || 'running').charAt(0).toUpperCase() + (server.status || 'running').slice(1)}
         </span>
         <span className="font-medium text-gray-900 dark:text-white">{server.name}</span>

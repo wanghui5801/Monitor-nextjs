@@ -122,16 +122,43 @@ Restart-Service ServerMonitorClient
 
 ### Server
 - OS: Ubuntu/Debian/CentOS/RHEL/Fedora
-- Python 3.8+
+- **Python 3.8+ (Required)**
+- **Required Python packages:**
+  - python3-pip
+  - python3-venv
 - Node.js 18+
 - 1GB RAM minimum
 - 10GB free disk space
 
 ### Client
 - OS: Windows/Linux
-- Python 3.8+
+- **Python 3.8+ (Required)**
+- **Required Python packages:**
+  - python3-pip
+  - python3-venv
 - 100MB free disk space
 - Admin/Root privileges
+
+### Installing Python Requirements (Linux)
+
+For Debian/Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install python3 python3-pip python3-venv
+```
+
+For CentOS/RHEL:
+
+```bash
+sudo dnf install python3 python3-pip python3-venv
+```
+
+For Fedora:
+
+```bash
+sudo dnf install python3 python3-pip python3-venv
+```
 
 ## Development Setup
 
