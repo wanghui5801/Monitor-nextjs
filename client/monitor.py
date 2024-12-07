@@ -319,23 +319,36 @@ def update_server_with_retry(server_info, max_retries=3, retry_delay=1):
 
 sio = Client(
     reconnection=True,
-    reconnection_attempts=5,
+    reconnection_attempts=0,  # 无限重试
     reconnection_delay=1,
-    reconnection_delay_max=5,
+    reconnection_delay_max=10,
     randomization_factor=0.5,
     logger=False,
     engineio_logger=False
 )
+
+# 添加新的连接状态跟踪
+CONNECTING = False
 RETRY_INTERVAL = 5
-MAX_RETRIES = 3
+MAX_CONSECUTIVE_ERRORS = 3
+error_count = 0
 
 @sio.event
 def connect():
+    global CONNECTING, error_count
     print('Connected to server')
+    CONNECTING = False
+    error_count = 0
+
+@sio.event
+def connect_error(error):
+    print(f"Connection error: {error}")
 
 @sio.event
 def disconnect():
+    global CONNECTING
     print('Disconnected from server')
+    CONNECTING = False
 
 def get_system_info_buffer():
     """Buffer system information to reduce I/O operations"""
@@ -365,40 +378,49 @@ def get_system_info_buffer():
     return cached_info
 
 def main():
-    global NODE_NAME, SERVER_ID
+    global NODE_NAME, SERVER_ID, CONNECTING, error_count
     
     NODE_NAME = parse_arguments()
-    
     SERVER_ID = get_machine_id()
     
     print(f"Starting monitoring for server: {SERVER_ID}")
     print(f"Node name: {NODE_NAME}")
     print(f"Sending data to: {API_URL}")
     
-    retry_count = 0
-    
     while True:
         try:
-            if not sio.connected:
+            if not sio.connected and not CONNECTING:
+                CONNECTING = True
+                print("Attempting to connect...")
                 sio.connect(API_URL)
-                retry_count = 0
-            
-            system_info = get_system_info_buffer()
-            # Convert all values to strings to prevent serialization issues
-            for key in system_info:
-                if isinstance(system_info[key], (float, int)):
-                    system_info[key] = str(system_info[key])
-            
-            sio.emit('server_update', system_info)
-            time.sleep(3)  # Increase interval to 3 seconds
+                
+            if sio.connected:
+                system_info = get_system_info_buffer()
+                # Convert all values to strings to prevent serialization issues
+                for key in system_info:
+                    if isinstance(system_info[key], (float, int)):
+                        system_info[key] = str(system_info[key])
+                
+                sio.emit('server_update', system_info)
+                error_count = 0  # Reset error count on successful emission
+                
+            time.sleep(3)
             
         except Exception as e:
+            error_count += 1
             print(f"Error: {e}")
-            retry_count += 1
-            if retry_count > MAX_RETRIES:
-                print("Max retries reached, waiting longer...")
+            
+            if error_count >= MAX_CONSECUTIVE_ERRORS:
+                print(f"Multiple consecutive errors ({error_count}), waiting longer...")
                 time.sleep(RETRY_INTERVAL * 2)
-                retry_count = 0
+                # 尝试重新初始化连接
+                try:
+                    if sio.connected:
+                        sio.disconnect()
+                    CONNECTING = False
+                except:
+                    pass
+                error_count = 0
             else:
                 time.sleep(RETRY_INTERVAL)
 
