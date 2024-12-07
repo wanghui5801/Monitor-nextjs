@@ -253,7 +253,21 @@ def get_server_type():
                     'standard personal computer', 'pc-q35', 'q35', 'pc-i440fx',
                     'hetzner vserver', 'vultr', 'linode', 'droplet', 'scaleway',
                     'ovhcloud', 'proxmox', 'parallels', 'hyper-v', 'oracle vm',
-                    'innotek', 'cloud server', 'virtual server', 'vps'
+                    'innotek', 'cloud server', 'virtual server', 'vps',
+                    'vc2', 'vc2-high-cpu', 'vc2-high-memory',
+                    'digitalocean', 'do-regular', 'do-premium',
+                    'azure virtual machine', 'azure vm',
+                    'aws ec2', 't2.micro', 't3.micro',
+                    'gcp instance', 'gce instance',
+                    'lightsail', 'elastic compute service',
+                    'tencent cloud cvm', 'huawei cloud ecs',
+                    'ucloud uhost', 'kingsoft cloud kec',
+                    'vagrant', 'docker', 'lxc', 'openvz',
+                    'esxi', 'citrix xenserver', 'nutanix ahv',
+                    'cloudstack', 'openshift', 'kubernetes',
+                    'rackspace cloud', 'ibm cloud virtual server',
+                    'upcloud', 'kamatera', 'hostwinds',
+                    'time4vps', 'hetzner cloud', 'contabo vps'
                 ]
                 if any(virt in product_name for virt in virt_products):
                     return "VPS"
