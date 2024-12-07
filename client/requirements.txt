@@ -1,4 +1,5 @@
 argparse
 requests
 psutil
-socketio
+python-socketio[client]==5.9.0
+websocket-client==1.6.1

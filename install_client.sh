@@ -60,7 +60,7 @@ main() {
     source venv/bin/activate
     
     # Install dependencies
-    pip install psutil requests python-socketio websocket-client
+    pip install psutil requests python-socketio websocket-client argparse
 
     # Download monitor.py from repository
     wget -O monitor.py https://raw.githubusercontent.com/wanghui5801/Monitor-nextjs/main/client/monitor.py

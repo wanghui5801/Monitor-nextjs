@@ -323,8 +323,8 @@ sio = Client(
     reconnection_delay=1,
     reconnection_delay_max=10,
     randomization_factor=0.5,
-    logger=False,
-    engineio_logger=False
+    logger=True,  # 启用日志以便调试
+    engineio_logger=True
 )
 
 # 添加新的连接状态跟踪
@@ -364,6 +364,7 @@ def get_system_info_buffer():
         for key, value in system_info.items():
             if isinstance(value, float):
                 system_info[key] = round(value, 2)
+        
         get_system_info_buffer._cached_info = system_info
         get_system_info_buffer._last_full_update = current_time
         return get_system_info_buffer._cached_info
@@ -377,6 +378,22 @@ def get_system_info_buffer():
     })
     return cached_info
 
+def connect_with_retry():
+    global CONNECTING
+    try:
+        if not sio.connected and not CONNECTING:
+            CONNECTING = True
+            print("Attempting to connect...")
+            sio.connect(
+                API_URL,
+                transports=['websocket'],
+                wait_timeout=10
+            )
+    except Exception as e:
+        print(f"Connection error: {e}")
+        CONNECTING = False
+        time.sleep(RETRY_INTERVAL)
+
 def main():
     global NODE_NAME, SERVER_ID, CONNECTING, error_count
     
@@ -389,20 +406,17 @@ def main():
     
     while True:
         try:
-            if not sio.connected and not CONNECTING:
-                CONNECTING = True
-                print("Attempting to connect...")
-                sio.connect(API_URL)
+            connect_with_retry()
                 
             if sio.connected:
                 system_info = get_system_info_buffer()
-                # Convert all values to strings to prevent serialization issues
-                for key in system_info:
-                    if isinstance(system_info[key], (float, int)):
-                        system_info[key] = str(system_info[key])
+
+                for key, value in system_info.items():
+                    if isinstance(value, (float, int)):
+                        system_info[key] = str(value)
                 
                 sio.emit('server_update', system_info)
-                error_count = 0  # Reset error count on successful emission
+                error_count = 0
                 
             time.sleep(3)
             
@@ -413,7 +427,6 @@ def main():
             if error_count >= MAX_CONSECUTIVE_ERRORS:
                 print(f"Multiple consecutive errors ({error_count}), waiting longer...")
                 time.sleep(RETRY_INTERVAL * 2)
-                # 尝试重新初始化连接
                 try:
                     if sio.connected:
                         sio.disconnect()

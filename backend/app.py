@@ -146,10 +146,13 @@ socketio = SocketIO(
     async_mode='threading',
     ping_timeout=60,
     ping_interval=25,
-    logger=False,
-    engineio_logger=False,
+    logger=True,
+   engineio_logger=True,
     max_http_buffer_size=1000000,
-    manage_session=False
+    manage_session=False,
+    always_connect=True,
+    websocket_ping_interval=25,
+    websocket_ping_timeout=60
 )
 
 # Store client last update time
@@ -208,6 +211,15 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
+
+# 添加错误处理
+@socketio.on_error()
+def error_handler(e):
+    print(f"SocketIO error: {e}")
+    
+@socketio.on_error_default
+def default_error_handler(e):
+    print(f"SocketIO default error: {e}")
 
 if __name__ == '__main__':
     try:
