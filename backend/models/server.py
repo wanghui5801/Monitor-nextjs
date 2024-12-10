@@ -6,6 +6,7 @@ import hashlib
 import os
 import jwt
 from config import Config
+import logging
 
 class Server:
     def __init__(self, db_path: str):
@@ -100,25 +101,24 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # Check current server status
+            # 获取当前状态
             c.execute('SELECT status FROM servers WHERE name = ?', (server_data['name'],))
             current = c.fetchone()
+            old_status = current[0] if current else 'unknown'
             
-            # If data update is received, status should be set to running
-            # Unless the current status is maintenance and it's the first connection
+            # 确定新状态
             if current and current[0] == 'maintenance':
-                first_update = True
-                c.execute('SELECT last_update FROM servers WHERE name = ?', (server_data['name'],))
-                last_update = c.fetchone()
-                if last_update and last_update[0] != 'CURRENT_TIMESTAMP':
-                    first_update = False
-                
-                if not first_update:
-                    server_data['status'] = 'running'
+                # 维护状态保持不变
+                server_data['status'] = 'maintenance'
             else:
+                # 其他情况设置为 running
                 server_data['status'] = 'running'
             
-            # Update server record
+            # 记录状态变更
+            if old_status != server_data['status']:
+                self.log_status_change(server_data['name'], old_status, server_data['status'])
+            
+            # 执行更新
             c.execute('''
                 UPDATE servers 
                 SET type = ?,
@@ -155,7 +155,6 @@ class Server:
                 server_data['name']
             ))
             conn.commit()
-            return True
         finally:
             conn.close()
 
@@ -230,7 +229,6 @@ class Server:
             servers_to_check = c.fetchall()
             
             for server_id, name, last_update, status in servers_to_check:
-                # 只有当服务器确实超过30秒未更新时才更改状态
                 last_update_time = datetime.fromisoformat(last_update)
                 if (current_time - last_update_time).total_seconds() > 30:
                     c.execute('''
@@ -238,11 +236,9 @@ class Server:
                         SET status = 'stopped'
                         WHERE id = ? AND status = 'running'
                     ''', (server_id,))
-                    print(f"Server {name} marked as stopped due to inactivity (Last update: {last_update})")
+                    self.log_status_change(name, 'running', 'stopped')
             
             conn.commit()
-        except Exception as e:
-            print(f"Error in check_server_status: {e}")
         finally:
             conn.close()
 
@@ -457,11 +453,11 @@ class Server:
                 last_update = datetime.fromisoformat(result[0])
                 current_time = datetime.now()
                 
-                # 如果最后更新时间在20秒以内，认为客户端仍然在线
-                if (current_time - last_update).total_seconds() <= 20:
+                # 将超时时间从20秒改为30秒,与check_server_status保持一致
+                if (current_time - last_update).total_seconds() <= 30:
                     return
                 
-            # 如果超过20秒没有更新或没有找到记录，将状态设置为stopped
+            # 如果超过30秒没有更新或没有找到记录,将状态设置为stopped
             c.execute('''
                 UPDATE servers 
                 SET status = 'stopped' 
@@ -471,3 +467,14 @@ class Server:
             conn.commit()
         finally:
             conn.close()
+
+    def log_status_change(self, server_name: str, old_status: str, new_status: str):
+        """Log server status changes"""
+        current_time = datetime.now().isoformat()
+        log_message = f"{current_time} - Server '{server_name}' status changed: {old_status} -> {new_status}"
+        
+        # 写入日志文件
+        logging.info(log_message)
+        
+        # 同时打印到控制台
+        print(log_message)
