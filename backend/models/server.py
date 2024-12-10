@@ -114,13 +114,11 @@ class Server:
             current = c.fetchone()
             old_status = current[0] if current else 'unknown'
             
-            # 确定新状态
-            if current and current[0] == 'maintenance':
-                server_data['status'] = 'maintenance'
-            else:
-                server_data['status'] = 'running'
+            # 修改状态判断逻辑
+            # 如果收到客户端更新，说明服务器已经恢复运行
+            server_data['status'] = 'running'
             
-            # 更新时间戳和状态
+            # 更新时间戳
             server_data['last_update'] = datetime.now().isoformat()
             
             # 记录状态变更
