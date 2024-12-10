@@ -108,11 +108,12 @@ class Server:
             
             # 确定新状态
             if current and current[0] == 'maintenance':
-                # 维护状态保持不变
                 server_data['status'] = 'maintenance'
             else:
-                # 其他情况设置为 running
                 server_data['status'] = 'running'
+            
+            # 更新时间戳和状态
+            server_data['last_update'] = datetime.now().isoformat()
             
             # 记录状态变更
             if old_status != server_data['status']:
@@ -135,7 +136,7 @@ class Server:
                     cpu_info = ?,
                     total_memory = ?,
                     total_disk = ?,
-                    last_update = CURRENT_TIMESTAMP
+                    last_update = ?
                 WHERE name = ?
             ''', (
                 server_data.get('type', 'Unknown'),
@@ -152,6 +153,7 @@ class Server:
                 server_data.get('cpu_info', 'N/A'),
                 server_data.get('total_memory', 0),
                 server_data.get('total_disk', 0),
+                server_data['last_update'],
                 server_data['name']
             ))
             conn.commit()
