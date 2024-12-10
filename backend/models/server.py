@@ -55,9 +55,17 @@ class Server:
             # Create allowed clients table
             c.execute('''
                 CREATE TABLE IF NOT EXISTS allowed_clients (
-                    name TEXT PRIMARY KEY,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_connected INTEGER DEFAULT 0
                 )
+            ''')
+            
+            # Add index for performance
+            c.execute('''
+                CREATE INDEX IF NOT EXISTS idx_client_name 
+                ON allowed_clients(name)
             ''')
             
             # Create admin authentication table
@@ -210,57 +218,33 @@ class Server:
         try:
             current_time = datetime.now()
             
-            # Update status to stopped for running servers with no data for over 20 seconds
+            # 获取所有需要检查的服务器
             c.execute('''
-                UPDATE servers
-                SET status = 'stopped'
+                SELECT id, name, last_update, status
+                FROM servers 
                 WHERE status = 'running'
-                AND datetime(last_update) < datetime(?, '-20 seconds')
+                AND datetime(last_update) < datetime(?, '-30 seconds')
                 AND status != 'maintenance'
             ''', (current_time.isoformat(),))
             
-            changed = c.rowcount
-            if changed > 0:
-                print(f"Marked {changed} servers as stopped due to inactivity")
+            servers_to_check = c.fetchall()
+            
+            for server_id, name, last_update, status in servers_to_check:
+                # 只有当服务器确实超过30秒未更新时才更改状态
+                last_update_time = datetime.fromisoformat(last_update)
+                if (current_time - last_update_time).total_seconds() > 30:
+                    c.execute('''
+                        UPDATE servers
+                        SET status = 'stopped'
+                        WHERE id = ? AND status = 'running'
+                    ''', (server_id,))
+                    print(f"Server {name} marked as stopped due to inactivity (Last update: {last_update})")
             
             conn.commit()
         except Exception as e:
             print(f"Error in check_server_status: {e}")
         finally:
             conn.close()
-
-    def check_inactive_servers(self):
-        """Check and update server statuses based on last update time"""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            c = conn.cursor()
-            
-            try:
-                current_time = datetime.now()
-                
-                # Only update servers with running status
-                c.execute('''
-                    UPDATE servers
-                    SET status = 'stopped'
-                    WHERE id IN (
-                        SELECT id FROM servers 
-                        WHERE status = 'running'
-                        AND datetime(last_update) < datetime(?, '-10 seconds')
-                        AND status != 'maintenance'
-                    )
-                ''', (current_time.isoformat(),))
-                
-                conn.commit()
-                
-                # Log status changes
-                changed_rows = c.rowcount
-                if changed_rows > 0:
-                    print(f"Marked {changed_rows} servers as stopped due to inactivity")
-                
-            finally:
-                conn.close()
-        except Exception as e:
-            print(f"Error in check_inactive_servers: {e}")
 
     def delete_server(self, server_id: str) -> bool:
         """Delete all records of the specified server"""
@@ -426,3 +410,64 @@ class Server:
             return True
         except:
             return False
+
+    def update_client_connection(self, client_name: str, is_connected: bool):
+        """Update client connection status"""
+        conn = self.get_db()
+        c = conn.cursor()
+        try:
+            c.execute('''
+                UPDATE allowed_clients 
+                SET is_connected = ? 
+                WHERE name = ?
+            ''', (1 if is_connected else 0, client_name))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def update_last_activity(self, client_name: str):
+        """Update client's last activity time"""
+        conn = self.get_db()
+        c = conn.cursor()
+        try:
+            current_time = datetime.now().isoformat()
+            c.execute('''
+                UPDATE servers 
+                SET last_update = ?,
+                    status = 'running'
+                WHERE name = ?
+            ''', (current_time, client_name))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def check_client_connection(self, client_name: str):
+        """Check client connection based on last activity"""
+        conn = self.get_db()
+        c = conn.cursor()
+        try:
+            c.execute('''
+                SELECT last_update 
+                FROM servers 
+                WHERE name = ?
+            ''', (client_name,))
+            result = c.fetchone()
+            
+            if result:
+                last_update = datetime.fromisoformat(result[0])
+                current_time = datetime.now()
+                
+                # 如果最后更新时间在20秒以内，认为客户端仍然在线
+                if (current_time - last_update).total_seconds() <= 20:
+                    return
+                
+            # 如果超过20秒没有更新或没有找到记录，将状态设置为stopped
+            c.execute('''
+                UPDATE servers 
+                SET status = 'stopped' 
+                WHERE name = ? 
+                AND status = 'running'
+            ''', (client_name,))
+            conn.commit()
+        finally:
+            conn.close()

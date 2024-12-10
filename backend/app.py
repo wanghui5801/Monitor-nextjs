@@ -43,10 +43,10 @@ servers = {}  # Use dictionary to store server information, key is server_id
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-# Add scheduled task, check server status every 10 seconds
+# Add scheduled task, check server status every 30 seconds
 scheduler.add_job(
-    func=server_model.check_inactive_servers,
-    trigger=IntervalTrigger(seconds=10),
+    func=server_model.check_server_status,
+    trigger=IntervalTrigger(seconds=30),
     id='check_server_status',
     name='Check server status',
     replace_existing=True
@@ -161,45 +161,36 @@ client_last_update = {}
 @socketio.on('connect')
 def handle_connect():
     print(f"Client connected: {request.sid}")
-
+    
 @socketio.on('disconnect')
 def handle_disconnect():
     print(f"Client disconnected: {request.sid}")
+    if hasattr(request, 'client_name'):
+        print(f"Client {request.client_name} disconnected")
 
 @socketio.on('server_update')
 def handle_server_update(data):
     try:
         if not data or 'id' not in data or 'name' not in data:
             return
+            
+        request.client_name = data['name']
         
-        # Update last activity time
-        client_last_update[data['id']] = datetime.now()
+        server_model.update_last_activity(data['name'])
         
-        # Update server status
-        data['status'] = 'running'  # Ensure status is running
+        data['status'] = 'running'
         server_model.update_server(data)
         
-        # Broadcast update to all clients
         emit('server_status_update', data, broadcast=True)
     except Exception as e:
         print(f"Error handling server update: {e}")
 
 def check_inactive_clients():
     """Check inactive clients"""
-    current_time = datetime.now()
-    threshold = current_time - timedelta(seconds=20)  # Extend to 20 seconds
-    
-    for client_id, last_update in client_last_update.items():
-        if last_update < threshold:
-            server_model.update_server({
-                'id': client_id,
-                'status': 'stopped'
-            })
-
-# Start scheduled tasks
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_inactive_clients, 'interval', seconds=10)  # Change check interval to 10 seconds
-scheduler.start()
+    try:
+        server_model.check_inactive_servers()
+    except Exception as e:
+        print(f"Error checking inactive clients: {e}")
 
 # Configure logging
 logging.basicConfig(
