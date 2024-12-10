@@ -9,6 +9,14 @@ from config import Config
 import logging
 
 class Server:
+    # 添加状态常量
+    STATUS_RUNNING = 'running'
+    STATUS_STOPPED = 'stopped'
+    STATUS_MAINTENANCE = 'maintenance'
+    
+    # 添加超时配置
+    CONNECTION_TIMEOUT = 30  # 连接超时时间（秒）
+    
     def __init__(self, db_path: str):
         self.db_path = db_path
 
@@ -471,7 +479,7 @@ class Server:
             conn.close()
 
     def log_status_change(self, server_name: str, old_status: str, new_status: str):
-        """Log server status changes"""
+        """Enhanced status change logging"""
         current_time = datetime.now().isoformat()
         log_message = f"{current_time} - Server '{server_name}' status changed: {old_status} -> {new_status}"
         
@@ -480,3 +488,7 @@ class Server:
         
         # 同时打印到控制台
         print(log_message)
+        
+        # 添加额外的状态变更详情
+        if new_status == self.STATUS_STOPPED:
+            logging.warning(f"Server {server_name} became inactive at {current_time}")

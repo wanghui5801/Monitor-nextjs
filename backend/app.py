@@ -176,14 +176,13 @@ def handle_server_update(data):
             
         request.client_name = data['name']
         
-        server_model.update_last_activity(data['name'])
-        
         data['status'] = 'running'
         server_model.update_server(data)
         
         emit('server_status_update', data, broadcast=True)
     except Exception as e:
         print(f"Error handling server update: {e}")
+        logging.error(f"Error handling server update: {e}")
 
 def check_inactive_clients():
     """Check inactive clients"""
