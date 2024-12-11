@@ -202,7 +202,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
-# 添加错误处理
+# Add error handling
 @socketio.on_error()
 def error_handler(e):
     print(f"SocketIO error: {e}")

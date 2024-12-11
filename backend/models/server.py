@@ -9,13 +9,13 @@ from config import Config
 import logging
 
 class Server:
-    # 添加状态常量
+    # Add status constants
     STATUS_RUNNING = 'running'
     STATUS_STOPPED = 'stopped'
     STATUS_MAINTENANCE = 'maintenance'
     
-    # 添加超时配置
-    CONNECTION_TIMEOUT = 30  # 连接超时时间（秒）
+    # Add timeout configuration
+    CONNECTION_TIMEOUT = 30  # Connection timeout in seconds
     
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -109,23 +109,23 @@ class Server:
         conn = self.get_db()
         c = conn.cursor()
         try:
-            # 获取当前状态
+            # Get current status
             c.execute('SELECT status FROM servers WHERE name = ?', (server_data['name'],))
             current = c.fetchone()
             old_status = current[0] if current else 'unknown'
             
-            # 修改状态判断逻辑
-            # 如果收到客户端更新，说明服务器已经恢复运行
+            # Modify status logic
+            # If client update is received, the server is considered running
             server_data['status'] = 'running'
             
-            # 更新时间戳
+            # Update timestamp
             server_data['last_update'] = datetime.now().isoformat()
             
-            # 记录状态变更
+            # Log status change
             if old_status != server_data['status']:
                 self.log_status_change(server_data['name'], old_status, server_data['status'])
             
-            # 执行更新
+            # Execute update
             c.execute('''
                 UPDATE servers 
                 SET type = ?,
@@ -225,7 +225,7 @@ class Server:
         try:
             current_time = datetime.now()
             
-            # 获取所有需要检查的服务器
+            # Get all servers that need to be checked
             c.execute('''
                 SELECT id, name, last_update, status
                 FROM servers 
@@ -408,7 +408,7 @@ class Server:
             conn.close()
 
     def verify_token(self, token: str) -> bool:
-        """验证JWT token"""
+        """Verify JWT token"""
         try:
             jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
             return True
@@ -461,11 +461,11 @@ class Server:
                 last_update = datetime.fromisoformat(result[0])
                 current_time = datetime.now()
                 
-                # 将超时时间从20秒改为30秒,与check_server_status保持一致
+                # Change timeout from 20 seconds to 30 seconds to match check_server_status
                 if (current_time - last_update).total_seconds() <= 30:
                     return
                 
-            # 如果超过30秒没有更新或没有找到记录,将状态设置为stopped
+            # If no update within 30 seconds or no record found, set status to stopped
             c.execute('''
                 UPDATE servers 
                 SET status = 'stopped' 
@@ -481,12 +481,5 @@ class Server:
         current_time = datetime.now().isoformat()
         log_message = f"{current_time} - Server '{server_name}' status changed: {old_status} -> {new_status}"
         
-        # 写入日志文件
+        # Write to log file
         logging.info(log_message)
-        
-        # 同时打印到控制台
-        print(log_message)
-        
-        # 添加额外的状态变更详情
-        if new_status == self.STATUS_STOPPED:
-            logging.warning(f"Server {server_name} became inactive at {current_time}")
