@@ -192,12 +192,19 @@ def get_ip_address():
                 addresses = psutil.net_if_addrs()
                 for _, addrs in addresses.items():
                     for addr in addrs:
-                        if addr.family == socket.AF_INET and not ipv4:  # IPv4
-                            if not addr.address.startswith('127.'):  # Skip localhost
+                        # For IPv4
+                        if addr.family == socket.AF_INET and not ipv4:
+                            if not addr.address.startswith(('127.', '169.254.')):  # Skip localhost and link-local
                                 ipv4 = addr.address
-                        elif addr.family == socket.AF_INET6 and not ipv6:  # IPv6
-                            if not addr.address.startswith('fe80:'):  # Skip link-local
-                                ipv6 = addr.address.split('%')[0]  # Remove scope ID if present
+                        # For IPv6
+                        elif addr.family == socket.AF_INET6 and not ipv6:
+                            addr_lower = addr.address.lower()
+                            # Skip link-local, unique local addresses and temporary addresses
+                            if not (addr_lower.startswith('fe80:') or 
+                                  addr_lower.startswith('fc00:') or 
+                                  addr_lower.startswith('fd00:') or
+                                  ':tmp' in addr_lower):
+                                ipv6 = addr.address.split('%')[0]  # Remove scope ID
             except Exception as e:
                 print(f"Failed to get local Windows IPs: {e}")
         else:
@@ -210,7 +217,6 @@ def get_ip_address():
                     s.close()
                 
                 if not ipv6:
-                    # Try to get local IPv6
                     s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
                     s.connect(('2001:4860:4860::8888', 80))
                     ipv6 = s.getsockname()[0]
