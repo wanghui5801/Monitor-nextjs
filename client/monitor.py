@@ -190,23 +190,36 @@ def get_ip_address():
             try:
                 # Get all network interfaces
                 addresses = psutil.net_if_addrs()
-                for _, addrs in addresses.items():
+                print("Debug: Available network interfaces:", list(addresses.keys()))
+                
+                for interface, addrs in addresses.items():
+                    # Skip loopback and virtual interfaces
+                    if interface.lower().startswith(('loopback', 'vethernet', 'virtualbox', 'vmware', 'wswan', 'local area connection')):
+                        continue
+                        
                     for addr in addrs:
                         # For IPv4
                         if addr.family == socket.AF_INET and not ipv4:
-                            if not addr.address.startswith(('127.', '169.254.')):  # Skip localhost and link-local
+                            if not addr.address.startswith(('127.', '169.254.')):
                                 ipv4 = addr.address
+                                print(f"Debug: Found IPv4 {ipv4} on interface {interface}")
+                        
                         # For IPv6
                         elif addr.family == socket.AF_INET6 and not ipv6:
                             addr_lower = addr.address.lower()
-                            # Skip link-local, unique local addresses and temporary addresses
-                            if not (addr_lower.startswith('fe80:') or 
-                                  addr_lower.startswith('fc00:') or 
-                                  addr_lower.startswith('fd00:') or
-                                  ':tmp' in addr_lower):
-                                ipv6 = addr.address.split('%')[0]  # Remove scope ID
+                            
+                            # Skip unwanted IPv6 addresses
+                            if (not addr_lower.startswith(('fe80:', '::1', '2001:0:')) and  # Skip link-local, loopback, and Teredo
+                                not any(x in interface.lower() for x in ('tunnel', 'virtual', '6to4'))):  # Skip tunnel interfaces
+                                
+                                # Get the address without scope ID if present
+                                ipv6 = addr_lower.split('%')[0]
+                                print(f"Debug: Found IPv6 {ipv6} on interface {interface}")
+                
             except Exception as e:
                 print(f"Failed to get local Windows IPs: {e}")
+                import traceback
+                print(traceback.format_exc())
         else:
             # Linux fallback
             try:
