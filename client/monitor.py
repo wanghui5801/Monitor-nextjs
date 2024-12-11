@@ -173,7 +173,6 @@ def get_ip_address():
         response = requests.get('https://api.ipify.org', timeout=5)
         if response.ok:
             ipv4 = response.text.strip()
-            print(f"Got public IPv4: {ipv4}")
     except Exception as e:
         print(f"Failed to get public IPv4: {e}")
     
@@ -182,21 +181,42 @@ def get_ip_address():
         response = requests.get('https://api6.ipify.org', timeout=5)
         if response.ok:
             ipv6 = response.text.strip()
-            print(f"Got public IPv6: {ipv6}")
     except Exception as e:
         print(f"Failed to get public IPv6: {e}")
     
     # Fallback to local IP methods if public IPs are not found
-    if not ipv4:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(('8.8.8.8', 80))
-            ipv4 = s.getsockname()[0]
-            s.close()
-            print(f"Got local IPv4: {ipv4}")
-        except Exception as e:
-            print(f"Failed to get local IPv4: {e}")
-            ipv4 = '127.0.0.1'
+    if not ipv4 or not ipv6:
+        if platform.system() == 'Windows':
+            try:
+                # Get all network interfaces
+                addresses = psutil.net_if_addrs()
+                for _, addrs in addresses.items():
+                    for addr in addrs:
+                        if addr.family == socket.AF_INET and not ipv4:  # IPv4
+                            if not addr.address.startswith('127.'):  # Skip localhost
+                                ipv4 = addr.address
+                        elif addr.family == socket.AF_INET6 and not ipv6:  # IPv6
+                            if not addr.address.startswith('fe80:'):  # Skip link-local
+                                ipv6 = addr.address.split('%')[0]  # Remove scope ID if present
+            except Exception as e:
+                print(f"Failed to get local Windows IPs: {e}")
+        else:
+            # Linux fallback
+            try:
+                if not ipv4:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(('8.8.8.8', 80))
+                    ipv4 = s.getsockname()[0]
+                    s.close()
+                
+                if not ipv6:
+                    # Try to get local IPv6
+                    s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+                    s.connect(('2001:4860:4860::8888', 80))
+                    ipv6 = s.getsockname()[0]
+                    s.close()
+            except Exception as e:
+                print(f"Failed to get local IPs: {e}")
     
     # Combine IPv4 and IPv6 if available
     if ipv4 and ipv6:
@@ -363,7 +383,7 @@ sio = Client(
     engineio_logger=True
 )
 
-# 添加新的��接状态跟踪
+# 添加新的接状态跟踪
 CONNECTING = False
 RETRY_INTERVAL = 5
 MAX_CONSECUTIVE_ERRORS = 3
