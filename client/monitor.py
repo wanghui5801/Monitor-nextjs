@@ -165,26 +165,48 @@ def get_all_disks_usage():
         return 0, 0
 
 def get_ip_address():
-    ip = None
-    try:
-        response = requests.get('https://api.ipify.org', timeout=5)
-        if response.ok:
-            ip = response.text.strip()
-            print(f"Got public IP: {ip}")
-            return ip
-    except Exception as e:
-        print(f"Failed to get public IP: {e}")
+    ipv4 = None
+    ipv6 = None
     
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-        print(f"Got local IP: {ip}")
-        return ip
+        # Try to get public IPv4
+        response = requests.get('https://api.ipify.org', timeout=5)
+        if response.ok:
+            ipv4 = response.text.strip()
+            print(f"Got public IPv4: {ipv4}")
     except Exception as e:
-        print(f"Failed to get local IP: {e}")
-        return '127.0.0.1'
+        print(f"Failed to get public IPv4: {e}")
+    
+    try:
+        # Try to get public IPv6
+        response = requests.get('https://api6.ipify.org', timeout=5)
+        if response.ok:
+            ipv6 = response.text.strip()
+            print(f"Got public IPv6: {ipv6}")
+    except Exception as e:
+        print(f"Failed to get public IPv6: {e}")
+    
+    # Fallback to local IP methods if public IPs are not found
+    if not ipv4:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            ipv4 = s.getsockname()[0]
+            s.close()
+            print(f"Got local IPv4: {ipv4}")
+        except Exception as e:
+            print(f"Failed to get local IPv4: {e}")
+            ipv4 = '127.0.0.1'
+    
+    # Combine IPv4 and IPv6 if available
+    if ipv4 and ipv6:
+        return f"{ipv4}/{ipv6}"
+    elif ipv4:
+        return ipv4
+    elif ipv6:
+        return ipv6
+    
+    return '127.0.0.1'
 
 def get_server_info():
     network_in, network_out = get_network_speed()
@@ -341,7 +363,7 @@ sio = Client(
     engineio_logger=True
 )
 
-# 添加新的连接状态跟踪
+# 添加新的��接状态跟踪
 CONNECTING = False
 RETRY_INTERVAL = 5
 MAX_CONSECUTIVE_ERRORS = 3

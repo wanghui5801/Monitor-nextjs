@@ -117,6 +117,14 @@ const ServerCard: React.FC<ServerCardProps> = ({ server, onToggleExpand }) => {
         );
     };
 
+    const formatIpAddress = (ip: string) => {
+        if (ip.includes('/')) {
+            const [ipv4, ipv6] = ip.split('/');
+            return `${ipv4} / ${ipv6}`;
+        }
+        return ip;
+    };
+
     return (
         <>
             <tr 
